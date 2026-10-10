@@ -1,0 +1,915 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diktant Daftar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: steno-notebook — ruled sheets on a pale page, red margin line, ink-blue actions */
+:root{
+  --paper:#EEF3EF; --sheet:#FFFFFF; --ink:#18212C; --muted:#5A6774; --line:#D3DDD6;
+  --rule:#C3D3E6; --accent:#2747C9; --accent-soft:#E3E9FB; --on-accent:#FFFFFF;
+  --margin:#D4405A; --ok:#1C7F47; --ok-soft:#E1F3E8; --bad:#C3343A; --bad-soft:#FBE6E6; --warn:#A86A12;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F141A; --sheet:#161D25; --ink:#E5EBF1; --muted:#8B98A6; --line:#26313C;
+    --rule:#243649; --accent:#86A2FF; --accent-soft:#1D2742; --on-accent:#0B1124;
+    --margin:#EE6B82; --ok:#52C285; --ok-soft:#14291E; --bad:#F27878; --bad-soft:#2E1719; --warn:#E3A44A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F141A; --sheet:#161D25; --ink:#E5EBF1; --muted:#8B98A6; --line:#26313C;
+  --rule:#243649; --accent:#86A2FF; --accent-soft:#1D2742; --on-accent:#0B1124;
+  --margin:#EE6B82; --ok:#52C285; --ok-soft:#14291E; --bad:#F27878; --bad-soft:#2E1719; --warn:#E3A44A;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:400 16px/1.55 var(--f-body);-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+kbd{font:600 .72rem var(--f-mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:.05rem .35rem;background:var(--sheet);color:var(--muted)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* header */
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1120px;margin:0 auto;padding:.7rem 16px;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:.55rem;font:800 1.15rem var(--f-display);letter-spacing:-.01em;cursor:pointer;background:none;border:0;padding:0}
+.logo-mark{width:26px;height:30px;border-radius:3px;background:var(--sheet);border:1.5px solid var(--ink);position:relative;overflow:hidden;
+  background-image:linear-gradient(var(--rule) 1.5px,transparent 1.5px);background-size:100% 6px;background-position:0 3px}
+.logo-mark::before{content:"";position:absolute;left:6px;top:0;bottom:0;width:1.5px;background:var(--margin)}
+.nav{display:flex;gap:.25rem;margin-left:auto;flex-wrap:wrap}
+.nav button{background:none;border:0;padding:.45rem .75rem;border-radius:8px;color:var(--muted);font-weight:700;cursor:pointer}
+.nav button:hover{color:var(--ink);background:var(--sheet)}
+.nav button.on{color:var(--accent);background:var(--accent-soft)}
+.badge{display:inline-block;min-width:1.25rem;padding:0 .3rem;margin-left:.25rem;border-radius:99px;background:var(--margin);color:#fff;font:600 .7rem/1.25rem var(--f-mono);text-align:center}
+
+main{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:1.5rem 4rem}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:.45rem;border:1px solid var(--line);background:var(--sheet);padding:.55rem .95rem;border-radius:9px;font-weight:700;cursor:pointer;text-decoration:none;color:var(--ink);line-height:1.2}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad)}
+.btn.big{padding:.8rem 1.4rem;font-size:1.05rem}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn kbd{background:transparent;color:inherit;border-color:currentColor;opacity:.75}
+.icon-btn{display:inline-grid;place-items:center;width:2.5rem;height:2.5rem;border-radius:50%;border:1px solid var(--line);background:var(--sheet);cursor:pointer;color:var(--ink);flex:none}
+.icon-btn:hover{border-color:var(--muted)}
+.icon-btn svg,.btn svg{width:1.1rem;height:1.1rem}
+.row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+
+/* home */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1.5rem;align-items:end;margin-bottom:2rem}
+.hero h1{font-size:clamp(2rem,4.5vw,3.1rem);font-weight:800;letter-spacing:-.02em}
+.hero p{margin:.6rem 0 0;color:var(--muted);max-width:52ch}
+.stats{display:flex;gap:0;border:1px solid var(--line);border-radius:12px;background:var(--sheet);overflow:hidden}
+.stat{padding:.75rem 1.1rem;border-left:1px solid var(--line);min-width:6.5rem}
+.stat:first-child{border-left:0}
+.stat b{display:block;font:700 1.6rem/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.stat span{font-size:.78rem;color:var(--muted);letter-spacing:.03em}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin:0 0 .9rem}
+.sec-head h2{font-size:1.25rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.1rem 1rem 1.6rem;display:flex;flex-direction:column;gap:.7rem;position:relative;min-width:0}
+.card::before{content:"";position:absolute;left:.75rem;top:0;bottom:0;width:1.5px;background:var(--margin);opacity:.45}
+.card h3{font-size:1.12rem;overflow-wrap:anywhere}
+.chips{display:flex;gap:.35rem;flex-wrap:wrap}
+.chip{font:600 .7rem/1 var(--f-mono);letter-spacing:.04em;text-transform:uppercase;padding:.3rem .45rem;border-radius:5px;background:var(--accent-soft);color:var(--accent)}
+.chip.lvl{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.bar{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);border-radius:99px;transition:width .3s}
+.meta{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.card .row{margin-top:auto}
+.empty{border:1.5px dashed var(--line);border-radius:12px;padding:2rem;text-align:center;color:var(--muted)}
+
+/* forms */
+.narrow{max-width:760px}
+.lead{color:var(--muted);margin:.5rem 0 1.5rem;max-width:62ch}
+.field{display:flex;flex-direction:column;gap:.35rem;margin-bottom:1rem}
+.field>label,.lbl{font-weight:700;font-size:.9rem}
+input[type=text],input[type=url],input:not([type]),select,textarea{background:var(--sheet);border:1px solid var(--line);border-radius:9px;padding:.6rem .75rem;width:100%;min-width:0}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none}
+.two{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:1rem}
+.tabs{display:flex;gap:.35rem;flex-wrap:wrap;margin:0 0 1rem;padding:0;border:0}
+.tabs button{border:1px solid var(--line);background:var(--sheet);padding:.55rem .9rem;border-radius:99px;font-weight:700;cursor:pointer;color:var(--muted)}
+.tabs button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:.3rem;border:1.5px dashed var(--muted);border-radius:12px;padding:1.6rem 1rem;text-align:center;cursor:pointer;background:var(--sheet)}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop input{display:none}
+.hint{font-size:.85rem;color:var(--muted);margin:.35rem 0 0}
+.methods{display:flex;flex-direction:column;gap:.5rem}
+.method{display:flex;gap:.6rem;align-items:flex-start;padding:.7rem .85rem;border:1px solid var(--line);border-radius:10px;background:var(--sheet);cursor:pointer}
+.method:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.method input{margin-top:.3rem;accent-color:var(--accent)}
+.method small{display:block;color:var(--muted)}
+.err{color:var(--bad);font-weight:700;min-height:1.4em}
+
+/* lesson */
+.lhead{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:1rem}
+.lhead h1{font-size:clamp(1.35rem,3vw,1.9rem);font-weight:800;flex:1 1 16rem;min-width:0;overflow-wrap:anywhere}
+.lprog{display:flex;align-items:center;gap:.6rem;font:600 .8rem var(--f-mono);color:var(--muted);min-width:9rem}
+.lprog .bar{flex:1;min-width:5rem}
+.modes{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:1.2rem;overflow-x:auto}
+.modes button{background:none;border:0;border-bottom:2.5px solid transparent;padding:.65rem 1rem;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;display:flex;gap:.4rem;align-items:center}
+.modes button svg{width:1rem;height:1rem}
+.modes button.on{color:var(--ink);border-bottom-color:var(--margin)}
+.player-host{display:none;margin-bottom:1rem;border-radius:12px;overflow:hidden;background:#000;max-width:640px}
+.player-host.show{display:block}
+.player-host video,.player-host iframe{display:block;width:100%;aspect-ratio:16/9;max-width:100%;border:0}
+.work{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:1.5rem;align-items:start}
+.pane{display:flex;flex-direction:column;gap:1rem;min-width:0}
+.segline{display:flex;justify-content:space-between;align-items:center;gap:.6rem;font:600 .85rem var(--f-mono);color:var(--muted);flex-wrap:wrap}
+.done-tag{color:var(--ok);display:inline-flex;gap:.3rem;align-items:center}
+.done-tag svg{width:1rem;height:1rem}
+.controls{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.play-big{display:inline-flex;align-items:center;gap:.6rem;height:3.2rem;padding:0 1.4rem 0 1.1rem;border-radius:99px;border:0;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:1.02rem;cursor:pointer}
+.play-big svg{width:1.4rem;height:1.4rem}
+.play-big:hover{filter:brightness(1.08)}
+.play-big.rec{background:var(--margin);color:#fff}
+.sel{display:inline-flex;align-items:center;gap:.4rem;font-size:.85rem;color:var(--muted);font-weight:700}
+.sel select{width:auto;padding:.4rem .5rem}
+.controls .sels{display:flex;gap:.6rem;margin-left:auto;flex-wrap:wrap}
+
+.paper{position:relative;background:var(--sheet);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.paper::before{content:"";position:absolute;left:2.6rem;top:0;bottom:0;width:2px;background:var(--margin);opacity:.6;pointer-events:none}
+.paper textarea{display:block;width:100%;min-height:10rem;border:0;border-radius:0;resize:vertical;background-color:transparent;
+  font:400 1.18rem/2.1rem var(--f-body);padding:.35rem 1rem 0 3.4rem;
+  background-image:linear-gradient(to bottom,transparent calc(2.1rem - 1px),var(--rule) calc(2.1rem - 1px));background-size:100% 2.1rem;background-attachment:local}
+.paper textarea:focus{outline:none}
+.paper:focus-within{border-color:var(--accent)}
+.actions{display:flex;gap:.5rem;flex-wrap:wrap}
+.keys{font-size:.8rem;color:var(--muted);margin:0;display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.feedback:empty{display:none}
+.fb{border-radius:12px;padding:1rem 1.1rem;border:1px solid var(--line);background:var(--sheet)}
+.fb.good{background:var(--ok-soft);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
+.fb strong{display:block;margin-bottom:.4rem}
+.fb.good strong{color:var(--ok)}
+.toks{font-size:1.15rem;line-height:2;display:flex;flex-wrap:wrap;gap:.1rem .45rem}
+.tok.ok{color:var(--ok);font-weight:700}
+.tok.bad{color:var(--bad);font-weight:700;background:var(--bad-soft);border-radius:5px;padding:0 .3rem}
+.tok.bad s{opacity:.8;margin-right:.3rem}
+.tok.mask{color:var(--muted);font-family:var(--f-mono);letter-spacing:.02em}
+.tok.next{color:var(--warn);font-family:var(--f-mono);border-bottom:2px solid var(--warn)}
+.tok.miss{color:var(--bad);text-decoration:underline wavy;text-underline-offset:4px}
+.fb small{color:var(--muted);display:block;margin-top:.5rem}
+.w{cursor:pointer;border-radius:4px;padding:0 .05rem}
+.w:hover{background:var(--accent-soft);color:var(--accent)}
+.w.saved{text-decoration:underline;text-decoration-color:var(--margin);text-decoration-thickness:2px;text-underline-offset:4px}
+
+.seggrid{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:1rem;position:sticky;top:5rem}
+.seggrid h3{font-size:.85rem;font-family:var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.7rem}
+.dots{display:grid;grid-template-columns:repeat(auto-fill,minmax(2.2rem,1fr));gap:.35rem;max-height:50vh;overflow:auto}
+.dot{height:2.1rem;border-radius:7px;border:1px solid var(--line);background:var(--paper);font:600 .78rem var(--f-mono);cursor:pointer;color:var(--muted)}
+.dot.done{background:var(--ok-soft);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
+.dot.cur{border:2px solid var(--accent);color:var(--accent)}
+.legend{display:flex;gap:.8rem;font-size:.75rem;color:var(--muted);margin-top:.7rem}
+
+/* shadowing */
+.sentence{font-size:1.4rem;line-height:1.6;background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.2rem;transition:filter .2s}
+.sentence.blur{filter:blur(7px);user-select:none}
+.score{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.score b{font:800 2.4rem/1 var(--f-display);font-variant-numeric:tabular-nums}
+.said{color:var(--muted);font-style:italic}
+
+/* transcript */
+.tlist{display:flex;flex-direction:column;background:var(--sheet);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tline{display:grid;grid-template-columns:auto 4.2rem minmax(0,1fr) auto;gap:.6rem;align-items:start;padding:.65rem .9rem;border-top:1px solid var(--line)}
+.tline:first-child{border-top:0}
+.tline.on{background:var(--accent-soft)}
+.tline .icon-btn{width:2rem;height:2rem}
+.ts{font:400 .78rem/2rem var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.tline p{margin:.2rem 0 0;font-size:1.05rem;line-height:1.6}
+.tline .ck{color:var(--ok);padding-top:.35rem}
+.tline .ck svg{width:1rem;height:1rem}
+
+/* editor */
+.toolbar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
+.status{border:1px solid var(--line);background:var(--sheet);border-radius:12px;padding:.9rem 1rem;margin-bottom:1rem}
+.status .bar{margin-top:.6rem}
+.syncbar{border:2px solid var(--margin);background:var(--sheet);border-radius:12px;padding:1rem;margin-bottom:1rem;display:flex;flex-direction:column;gap:.7rem}
+.syncbar .now{font-size:1.25rem;line-height:1.5}
+.syncbar .nxt{color:var(--muted);font-size:.9rem}
+.seglist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.5rem}
+.segrow{display:grid;grid-template-columns:2rem auto minmax(0,1fr) auto;gap:.6rem;align-items:start;background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:.6rem}
+.segrow.cur{border-color:var(--margin)}
+.segrow .num{font:600 .8rem/2.3rem var(--f-mono);color:var(--muted);text-align:right}
+.segrow .times{display:flex;flex-direction:column;gap:.3rem;width:6.2rem}
+.segrow .times input{font:400 .82rem var(--f-mono);padding:.35rem .45rem;text-align:center}
+.segrow textarea{min-height:4.6rem;resize:vertical;font-size:1rem;line-height:1.45}
+.segrow .acts{display:flex;flex-direction:column;gap:.3rem}
+.segrow .icon-btn{width:2.1rem;height:2.1rem}
+.segrow .icon-btn svg{width:.95rem;height:.95rem}
+.saved-note{font-size:.8rem;color:var(--muted);font-family:var(--f-mono)}
+
+/* vocab */
+.vtools{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem}
+.vtools input{flex:1 1 14rem}
+.vlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.8rem}
+.vcard{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem;display:flex;flex-direction:column;gap:.35rem;min-width:0}
+.vcard .top-line{display:flex;align-items:center;gap:.5rem}
+.vcard h3{font-size:1.2rem;flex:1;min-width:0;overflow-wrap:anywhere}
+.vcard .icon-btn{width:2rem;height:2rem}
+.phon{font-family:var(--f-mono);font-size:.85rem;color:var(--muted)}
+.mean{font-weight:700}
+.ctx{color:var(--muted);font-style:italic;font-size:.92rem;margin:.2rem 0}
+.ctx mark{background:color-mix(in srgb,var(--warn) 25%,transparent);color:inherit;border-radius:3px;padding:0 .1rem}
+.boxes{display:flex;gap:3px;margin-top:auto;padding-top:.3rem}
+.boxes i{width:14px;height:5px;border-radius:2px;background:var(--line)}
+.boxes i.on{background:var(--ok)}
+.addw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:.5rem;background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:.8rem;margin-bottom:1rem}
+
+/* review */
+.flash{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:1rem}
+.fcard{background:var(--sheet);border:1px solid var(--line);border-radius:16px;padding:2.2rem 1.6rem;text-align:center;min-height:16rem;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:.7rem;position:relative;
+  background-image:linear-gradient(to bottom,transparent calc(2rem - 1px),var(--rule) calc(2rem - 1px));background-size:100% 2rem}
+.fcard h2{font-size:2.4rem}
+.grades{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}
+.grades .btn{justify-content:center}
+
+/* settings */
+.set{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:1.1rem;margin-bottom:1rem}
+.set h2{font-size:1.1rem;margin-bottom:.8rem}
+
+/* modal & toast */
+#modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px}
+.scrim{position:absolute;inset:0;background:rgb(10 14 20 / .45)}
+.sheet{position:relative;background:var(--sheet);border:1px solid var(--line);border-radius:16px;padding:1.4rem;width:min(520px,100%);max-height:85vh;overflow:auto;display:flex;flex-direction:column;gap:.8rem}
+.wm-head{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.wm-head h2{font-size:1.8rem}
+.defs{font-size:.93rem;display:flex;flex-direction:column;gap:.4rem}
+.defs em{color:var(--accent);font-style:normal;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em}
+.defs .ex{color:var(--muted);font-style:italic}
+#toast{position:fixed;left:50%;bottom:calc(1.2rem + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:.4rem;align-items:center;pointer-events:none;width:min(92vw,520px)}
+.toast{background:var(--ink);color:var(--paper);padding:.65rem 1rem;border-radius:10px;font-weight:700;font-size:.92rem;box-shadow:0 6px 24px rgb(0 0 0 / .2);animation:tin .2s ease-out}
+@keyframes tin{from{opacity:0;transform:translateY(6px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+@media (max-width: 860px){
+  .work{grid-template-columns:minmax(0,1fr)}
+  .seggrid{position:static}
+  .hero{grid-template-columns:minmax(0,1fr)}
+  .stats{flex-wrap:wrap}
+  .stat{flex:1 1 40%}
+}
+@media (max-width: 560px){
+  .two{grid-template-columns:minmax(0,1fr)}
+  .segrow{grid-template-columns:minmax(0,1fr) auto}
+  .segrow .num,.segrow>span:empty{display:none}
+  .segrow .times{flex-direction:row;width:auto;grid-column:1/-1;order:-1}
+  .segrow .times input{width:6rem}
+  .addw{grid-template-columns:minmax(0,1fr)}
+  .tline{grid-template-columns:auto minmax(0,1fr) auto}
+  .tline .ts{display:none}
+  .controls .sels{margin-left:0}
+  .nav button{padding:.4rem .55rem}
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <button class="logo" data-go="home"><span class="logo-mark" aria-hidden="true"></span>Diktant Daftar</button>
+  <nav class="nav">
+    <button data-go="home">Darslar</button>
+    <button data-go="add">Yangi dars</button>
+    <button data-go="vocab">Lug‘at<span id="dueBadge" class="badge" hidden></span></button>
+    <button data-go="settings">Sozlamalar</button>
+  </nav>
+</div></header>
+<main id="app"></main>
+<div id="modal" hidden></div>
+<div id="toast" aria-live="polite"></div>
+
+<script>
+/* ============ helpers ============ */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const DAY=864e5;
+const dkey=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const today=()=>dkey(new Date());
+function loadLS(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def}catch{return def}}
+function saveLS(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+function toast(msg,ms=2600){const t=document.createElement('div');t.className='toast';t.textContent=msg;$('#toast').appendChild(t);setTimeout(()=>t.remove(),ms)}
+function fmtT(t){if(t==null||isNaN(t))return'';const m=Math.floor(t/60);const s=(t-m*60).toFixed(1).padStart(4,'0');return m+':'+s}
+function parseT(str){str=String(str||'').trim().replace(',','.');if(!str)return null;const p=str.split(':').map(Number);if(p.some(isNaN))return undefined;return p.reduce((a,b)=>a*60+b,0)}
+const norm=w=>w.toLowerCase().replace(/[’‘`´]/g,"'").replace(/[^a-z0-9']/g,'').replace(/'/g,'');
+
+const I={
+  play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
+  replay:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M10 9.5v5l4-2.5z" fill="currentColor"/></svg>',
+  prev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  next:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>',
+  mic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+  stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
+  speaker:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+  merge:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V9M7 13l5-5 5 5M5 4h14"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  pen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  ear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 9a5 5 0 0 1 10 0c0 3-3 4-3 7a3 3 0 0 1-5.5 1.6"/><path d="M10 9.5a2 2 0 0 1 4 0"/></svg>',
+  text:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 11h16M4 16h10"/></svg>',
+  wave:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 10v4"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
+};
+
+/* ============ storage ============ */
+const DB={db:null,
+  open(){return new Promise((res,rej)=>{const r=indexedDB.open('diktant-daftar',1);
+    r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('lessons',{keyPath:'id'});d.createObjectStore('vocab',{keyPath:'id'})};
+    r.onsuccess=()=>{this.db=r.result;res()};r.onerror=()=>rej(r.error)})},
+  tx(store,mode,fn){return new Promise((res,rej)=>{const t=this.db.transaction(store,mode);const req=fn(t.objectStore(store));
+    t.oncomplete=()=>res(req&&req.result);t.onerror=()=>rej(t.error)})},
+  all(s){return this.tx(s,'readonly',o=>o.getAll())},
+  get(s,id){return this.tx(s,'readonly',o=>o.get(id))},
+  put(s,v){return this.tx(s,'readwrite',o=>o.put(v))},
+  del(s,id){return this.tx(s,'readwrite',o=>o.delete(id))},
+  clear(s){return this.tx(s,'readwrite',o=>o.clear())},
+};
+const settings=Object.assign({speed:1,repeat:1,autoNext:true,model:'Xenova/whisper-base.en',voice:'',maxWords:22},loadLS('dd_settings',{}));
+const saveSettings=()=>saveLS('dd_settings',settings);
+function bump(n=1){const s=loadLS('dd_stats',{days:{}});s.days[today()]=(s.days[today()]||0)+n;saveLS('dd_stats',s)}
+function streak(){const s=loadLS('dd_stats',{days:{}});let c=0;const d=new Date();if(!s.days[dkey(d)])d.setDate(d.getDate()-1);while(s.days[dkey(d)]){c++;d.setDate(d.getDate()-1)}return c}
+const todayCount=()=>(loadLS('dd_stats',{days:{}}).days[today()]||0);
+
+/* ============ speech ============ */
+function pickVoice(){if(!('speechSynthesis' in window))return null;const vs=speechSynthesis.getVoices();return vs.find(v=>v.name===settings.voice)||vs.find(v=>/en[-_]US/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||null}
+function speak(text,rate=1){return new Promise(res=>{if(!('speechSynthesis' in window)){toast('Bu brauzer matnni ovozda o‘qiy olmaydi');return res()}
+  speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=rate;const v=pickVoice();if(v)u.voice=v;
+  u.onend=u.onerror=()=>res();speechSynthesis.speak(u)})}
+
+/* ============ player ============ */
+let ytP=null;
+function loadYT(){return ytP||(ytP=new Promise((res,rej)=>{if(window.YT&&YT.Player)return res();
+  window.onYouTubeIframeAPIReady=()=>res();const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';
+  s.onerror=()=>{ytP=null;rej(new Error('yt'))};document.head.appendChild(s)}))}
+class Player{
+  constructor(lesson,host){this.lesson=lesson;this.host=host;this.kind=lesson.source.type;this.rate=1;this.token=0;this.ready=this.init()}
+  async init(){const s=this.lesson.source;this.host.innerHTML='';this.host.className='player-host';
+    if(s.type==='file'||s.type==='url'){
+      const v=document.createElement('video');v.playsInline=true;v.preload='auto';
+      v.src=s.type==='file'?(this.obj=URL.createObjectURL(s.blob)):s.url;this.host.appendChild(v);this.el=v;v.playbackRate=this.rate;
+      v.addEventListener('loadedmetadata',()=>{if(v.videoWidth>0)this.host.classList.add('show')});
+      v.addEventListener('error',()=>toast('Audio ochilmadi. Fayl yoki havolani tekshiring.'));
+    }else if(s.type==='youtube'){
+      this.host.classList.add('show');const d=document.createElement('div');this.host.appendChild(d);
+      try{await loadYT()}catch{toast('YouTube yuklanmadi. Internetni tekshiring.');return}
+      await new Promise(res=>{const t=setTimeout(res,12000);
+        this.yt=new YT.Player(d,{videoId:s.videoId,playerVars:{playsinline:1,rel:0,modestbranding:1},
+          events:{onReady:()=>{clearTimeout(t);res()},onError:e=>toast('YouTube video ochilmadi (kod '+e.data+'). Saytni http(s) manzil orqali oching.',5000)}})});
+      try{this.yt.setPlaybackRate(this.rate)}catch{}
+    }}
+  time(){if(this.el)return this.el.currentTime;try{return this.yt.getCurrentTime()||0}catch{return 0}}
+  seek(t){if(this.el)this.el.currentTime=t;else try{this.yt.seekTo(t,true)}catch{}}
+  rawPlay(){if(this.el)return this.el.play().catch(e=>toast('Ijro boshlanmadi: '+e.message));try{this.yt.playVideo()}catch{}}
+  rawPause(){if(this.el)this.el.pause();else try{this.yt.pauseVideo()}catch{}}
+  stop(){this.token++;clearInterval(this.timer);this.rawPause();if('speechSynthesis' in window)speechSynthesis.cancel()}
+  setRate(r){this.rate=r;if(this.el)this.el.playbackRate=r;try{this.yt&&this.yt.setPlaybackRate(r)}catch{}}
+  async playFrom(t){await this.ready;this.stop();this.seek(t);this.rawPlay()}
+  async playSegment(seg,times=1){await this.ready;this.stop();const tk=this.token;
+    for(let n=0;n<times;n++){if(tk!==this.token)return false;
+      if(this.kind==='tts'||seg.start==null||seg.end==null)await speak(seg.text,this.rate);
+      else await this._range(seg.start,seg.end+0.12,tk);
+      if(tk!==this.token)return false;if(n<times-1)await sleep(550)}
+    return true}
+  _range(a,b,tk){return new Promise(res=>{this.seek(a);this.rawPlay();const st=performance.now();clearInterval(this.timer);
+    this.timer=setInterval(()=>{if(tk!==this.token){clearInterval(this.timer);return res()}
+      const t=this.time(),el=performance.now()-st;
+      if((el>250&&t>=b)||(this.el&&this.el.ended)||el>((b-a)/this.rate+8)*1000){clearInterval(this.timer);this.rawPause();res()}},30)})}
+  destroy(){this.stop();try{this.yt&&this.yt.destroy()}catch{}if(this.obj)URL.revokeObjectURL(this.obj);this.host.innerHTML=''}
+}
+
+/* ============ text parsing ============ */
+function splitSentences(text){const out=[];
+  for(const line of text.split(/\n+/)){const l=line.replace(/\s+/g,' ').trim();if(!l)continue;
+    const parts=l.match(/[^.!?]+[.!?]+["'”’)\]]*|[^.!?]+$/g)||[l];
+    for(let p of parts){p=p.trim();if(!p)continue;const w=p.split(' ');
+      if(w.length>30){const mid=Math.floor(w.length/2);let cut=-1;
+        for(let d=0;d<mid;d++){if(/[,;:]$/.test(w[mid+d])){cut=mid+d;break}if(/[,;:]$/.test(w[mid-d])){cut=mid-d;break}}
+        if(cut<0)cut=mid;out.push(w.slice(0,cut+1).join(' '),w.slice(cut+1).join(' '))}
+      else out.push(p)}}
+  return out.filter(Boolean)}
+function tsToSec(s){s=s.trim().replace(',','.');const p=s.split(':').map(Number);return p.reduce((a,b)=>a*60+b,0)}
+function parseTimed(text){text=text.replace(/\r/g,'');const chunks=[];
+  if(text.includes('-->')){
+    for(const block of text.split(/\n\s*\n/)){const lines=block.split('\n');const k=lines.findIndex(l=>l.includes('-->'));if(k<0)continue;
+      const [a,b]=lines[k].split('-->');const t=lines.slice(k+1).join(' ').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+      if(t)chunks.push({start:tsToSec(a),end:tsToSec(b.trim().split(/\s/)[0]),text:t})}
+  }else{
+    const tsRe=/^\s*(\d{1,2}:)?\d{1,2}:\d{2}\s*$/;const lines=text.split('\n');let curC=null;
+    for(const raw of lines){const l=raw.trim();if(!l)continue;
+      const inl=l.match(/^((?:\d{1,2}:)?\d{1,2}:\d{2})\s+(.+)$/);
+      if(tsRe.test(l)){curC={start:tsToSec(l),text:''};chunks.push(curC)}
+      else if(inl){curC={start:tsToSec(inl[1]),text:inl[2]};chunks.push(curC)}
+      else if(/^\d+\s+(second|minute|hour|soniya|daqiqa)/i.test(l))continue;
+      else if(curC)curC.text+=(curC.text?' ':'')+l}
+    chunks.forEach((c,i)=>c.end=chunks[i+1]?chunks[i+1].start:c.start+5)}
+  return chunks.filter(c=>c.text.trim())}
+function mergeSentences(chunks,maxWords=settings.maxWords){const out=[];let acc=null;
+  for(const c of chunks){const t=c.text.trim();if(!t)continue;
+    if(!acc)acc={start:c.start,end:c.end,text:t};else{acc.text+=' '+t;acc.end=c.end}
+    const wc=acc.text.split(/\s+/).length;
+    if(/[.!?]["'”’)\]]*$/.test(acc.text)||wc>=maxWords){out.push(acc);acc=null}}
+  if(acc)out.push(acc);
+  return out.map(s=>({start:+(+s.start).toFixed(2),end:+(+s.end).toFixed(2),text:s.text.replace(/\s+/g,' ').trim()}))}
+function ytId(url){const m=String(url).match(/(?:youtu\.be\/|v=|shorts\/|embed\/|live\/)([\w-]{11})/);return m?m[1]:(/^[\w-]{11}$/.test(url.trim())?url.trim():null)}
+
+/* ============ comparison ============ */
+function compare(text,typed){const exp=text.trim().split(/\s+/).filter(Boolean);
+  const typedRaw=typed.trim().split(/\s+/).filter(t=>norm(t));const tw=typedRaw.map(norm);let k=0,stop=-1;
+  for(let i=0;i<exp.length;i++){const n=norm(exp[i]);if(!n)continue;if(k<tw.length&&tw[k]===n)k++;else{stop=i;break}}
+  const tokens=exp.map((w,i)=>({w,s:stop===-1||i<stop?'ok':i===stop?(k<tw.length?'bad':'next'):'mask'}));
+  const okCount=exp.slice(0,stop===-1?exp.length:stop).filter(w=>norm(w)).length;
+  return{tokens,complete:stop===-1,typedWrong:stop>=0&&k<tw.length?typedRaw[k]:null,prefix:stop===-1?exp:exp.slice(0,stop),next:stop>=0?exp[stop]:null,okCount,total:exp.filter(w=>norm(w)).length}}
+function lcsMark(expected,spoken){const e=expected.map(norm),s=spoken.map(norm).filter(Boolean);const n=e.length,m=s.length;
+  const dp=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+  for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)dp[i][j]=e[i]&&e[i]===s[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+  const hit=new Array(n).fill(false);let i=0,j=0;while(i<n&&j<m){if(e[i]&&e[i]===s[j]){hit[i]=true;i++;j++}else if(dp[i+1][j]>=dp[i][j+1])i++;else j++}
+  const total=e.filter(Boolean).length;return{hit,score:total?Math.round(100*hit.filter(Boolean).length/total):0}}
+const mask=w=>esc(w.replace(/[A-Za-z0-9]/g,'*'));
+
+/* ============ app state ============ */
+const app=$('#app');
+const state={view:'home'};
+const cur={lesson:null,player:null,idx:0,drafts:{},mode:'dict',vocab:[],justDone:false,sync:null};
+function go(view,opts={}){Object.assign(state,{view},opts);render(true)}
+async function refreshVocab(){cur.vocab=await DB.all('vocab');const due=cur.vocab.filter(v=>v.due<=Date.now()).length;
+  const b=$('#dueBadge');b.hidden=!due;b.textContent=due}
+const saveLesson=()=>cur.lesson&&DB.put('lessons',cur.lesson);
+let saveTimer;function autosave(){clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{await saveLesson();const n=$('#savedNote');if(n)n.textContent='Saqlandi '+new Date().toLocaleTimeString().slice(0,5)},600)}
+
+async function render(scroll){
+  $$('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===state.view||(state.view==='review'&&b.dataset.go==='vocab')));
+  if(state.view!=='lesson'&&cur.lesson){if(cur.mode==='shadow')stopRecording(true);cur.player&&cur.player.destroy();cur.player=null;cur.lesson=null}
+  if(state.view==='home')app.innerHTML=await homeView();
+  else if(state.view==='add'){app.innerHTML=addView();bindAdd()}
+  else if(state.view==='vocab'){app.innerHTML=vocabView();}
+  else if(state.view==='review'){startReview()}
+  else if(state.view==='settings'){app.innerHTML=settingsView()}
+  else if(state.view==='lesson'){await openLesson()}
+  if(scroll)window.scrollTo(0,0)}
+
+/* ============ home ============ */
+function srcLabel(s){return s.type==='youtube'?'YouTube':s.type==='tts'?'Ovozli matn':s.type==='url'?'Audio havola':(s.blob&&/^video/.test(s.blob.type)?'Video':'Audio')}
+async function homeView(){const lessons=(await DB.all('lessons')).sort((a,b)=>(b.touched||b.created)-(a.touched||a.created));
+  const due=cur.vocab.filter(v=>v.due<=Date.now()).length;
+  return `<section class="hero"><div><h1>Har kuni bir sahifa diktant.</h1>
+    <p>O‘zingiz tanlagan audio, video yoki YouTube darsini gapma-gap tinglang, yozing, takrorlang. Notanish so‘zlar lug‘atingizga tushadi.</p></div>
+    <div class="stats">
+      <div class="stat"><b>${streak()}</b><span>kunlik seriya</span></div>
+      <div class="stat"><b>${todayCount()}</b><span>bugun yozilgan gap</span></div>
+      <div class="stat"><b>${cur.vocab.length}</b><span>so‘z lug‘atda</span></div>
+      <div class="stat"><b>${due}</b><span>takrorlash kerak</span></div>
+    </div></section>
+  <div class="sec-head"><h2>Darslaringiz</h2><button class="btn primary" data-go="add">+ Yangi dars</button></div>
+  ${lessons.length?`<div class="grid">${lessons.map(lessonCard).join('')}</div>`:
+    `<div class="empty"><p>Hali dars yo‘q. Birinchi audioni qo‘shing.</p><button class="btn primary" data-go="add">Yangi dars qo‘shish</button></div>`}`}
+function lessonCard(L){const n=L.segments.length,d=(L.progress?.done||[]).filter(i=>i<n).length,pct=n?Math.round(100*d/n):0;
+  return `<article class="card"><div class="chips"><span class="chip">${esc(srcLabel(L.source))}</span><span class="chip lvl">${esc(L.level||'—')}</span></div>
+    <h3>${esc(L.title)}</h3>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="meta">${n?`${d} / ${n} gap · ${pct}%`:'Matn hali tayyor emas'}</div>
+    <div class="row"><button class="btn primary" data-act="open" data-id="${L.id}" data-mode="${n?'dict':'edit'}">${n?(d?'Davom etish':'Boshlash'):'Matn tayyorlash'}</button>
+    ${n?`<button class="btn" data-act="open" data-id="${L.id}" data-mode="shadow">Shadowing</button>`:''}
+    <button class="btn ghost danger" data-act="del-lesson" data-id="${L.id}" style="margin-left:auto">O‘chirish</button></div></article>`}
+
+/* ============ add lesson ============ */
+const addState={src:'file',method:'auto',file:null};
+function addView(){return `<section class="narrow"><h1>Yangi dars</h1>
+  <p class="lead">Audio yoki video fayl, YouTube havolasi, audio URL yoki oddiy inglizcha matn qo‘shing. Faylning matnini sun’iy intellekt avtomatik yozib beradi.</p>
+  <div class="two"><div class="field"><label for="aTitle">Sarlavha</label><input id="aTitle" placeholder="Masalan: 6 Minute English — Sleep"></div>
+  <div class="field"><label for="aLevel">Daraja</label><select id="aLevel">${['A1','A2','B1','B2','C1','C2'].map(l=>`<option ${l==='B1'?'selected':''}>${l}</option>`).join('')}</select></div></div>
+  <span class="lbl">Manba</span>
+  <div class="tabs" role="tablist">${[['file','Audio / video fayl'],['youtube','YouTube havola'],['url','Audio havola (URL)'],['tts','Faqat matn']].map(([k,t])=>`<button role="tab" data-act="src" data-src="${k}">${t}</button>`).join('')}</div>
+  <div id="srcBody" class="field"></div>
+  <div class="field" id="methodWrap"><span class="lbl">Matn (script) qayerdan olinadi?</span><div id="methodBody" class="methods"></div></div>
+  <div class="field" id="textWrap"><label for="aText" id="aTextLbl">Matn</label><textarea id="aText" rows="9" spellcheck="false"></textarea><p class="hint" id="aTextHint"></p></div>
+  <p id="aErr" class="err"></p>
+  <button class="btn primary big" data-act="create">Darsni yaratish</button></section>`}
+function bindAdd(){addState.file=null;renderAddParts()}
+function renderAddParts(){const s=addState.src;
+  $$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.src===s));
+  const sb=$('#srcBody');
+  if(s==='file'){sb.innerHTML=`<label class="drop" id="drop"><input type="file" id="aFile" accept="audio/*,video/*"><b>${addState.file?esc(addState.file.name):'Faylni shu yerga tashlang yoki tanlang'}</b><span class="hint">${addState.file?(addState.file.size/1048576).toFixed(1)+' MB':'MP3, M4A, WAV, MP4, WEBM…'}</span></label>`;
+    const d=$('#drop'),f=$('#aFile');f.onchange=()=>{addState.file=f.files[0]||null;renderAddParts()};
+    d.ondragover=e=>{e.preventDefault();d.classList.add('over')};d.ondragleave=()=>d.classList.remove('over');
+    d.ondrop=e=>{e.preventDefault();d.classList.remove('over');const fl=e.dataTransfer.files[0];if(fl){addState.file=fl;renderAddParts()}}}
+  else if(s==='youtube')sb.innerHTML=`<label for="aYt" class="lbl">YouTube havolasi</label><input id="aYt" type="url" placeholder="https://www.youtube.com/watch?v=…"><p class="hint">YouTube ovozini brauzerda avtomatik yozib bo‘lmaydi. Video ostidagi “…” → <b>Show transcript</b> matnini nusxalab pastga joylang — vaqtlari bilan avtomatik bo‘linadi.</p>`;
+  else if(s==='url')sb.innerHTML=`<label for="aUrl" class="lbl">Audio fayl havolasi</label><input id="aUrl" type="url" placeholder="https://…/episode.mp3"><p class="hint">To‘g‘ridan-to‘g‘ri .mp3 / .m4a havola. Avtomatik transkripsiya faqat server ruxsat bergan havolalarda ishlaydi; aks holda faylni yuklab, “Audio / video fayl” orqali qo‘shing.</p>`;
+  else sb.innerHTML=`<p class="hint">Inglizcha matnni pastga joylang. Brauzer uni gapma-gap ovozda o‘qib beradi — kitob, maqola yoki darslik matnlari uchun qulay.</p>`;
+  const opts=s==='tts'?['plain']:s==='youtube'?['timed','plain']:['auto','timed','plain'];
+  if(!opts.includes(addState.method))addState.method=opts[0];
+  const L={auto:['Avtomatik (Whisper)','Sun’iy intellekt audioni o‘zi yozib beradi. Brauzeringizda ishlaydi, birinchi marta model yuklanadi (~80 MB).'],
+    timed:['Vaqtli subtitr joylash','SRT, VTT yoki YouTube “Show transcript” matni. Vaqtlar avtomatik olinadi.'],
+    plain:['Oddiy matn joylash',s==='tts'?'Matn gaplarga bo‘linadi.':'Matn gaplarga bo‘linadi, vaqtini keyin bitta tugma bilan belgilaysiz.']};
+  $('#methodWrap').hidden=s==='tts';
+  $('#methodBody').innerHTML=opts.map(k=>`<label class="method"><input type="radio" name="method" value="${k}" ${k===addState.method?'checked':''}><span><b>${L[k][0]}</b><small>${L[k][1]}</small></span></label>`).join('');
+  $$('#methodBody input').forEach(r=>r.onchange=()=>{addState.method=r.value;renderAddParts()});
+  const m=addState.method;$('#textWrap').hidden=m==='auto';
+  $('#aTextLbl').textContent=m==='timed'?'Subtitr yoki transcript matni':'Inglizcha matn';
+  $('#aText').placeholder=m==='timed'?'0:00\nHello and welcome to the show.\n0:04\nToday we are talking about sleep.':'Last week I started a new job at a small bookshop. On my first morning…';
+  $('#aTextHint').textContent=m==='timed'?'Har bir qator oldidagi vaqt (0:04) yoki SRT/VTT formatidagi vaqtlar o‘qiladi.':'Har bir gap alohida mashqqa aylanadi.'}
+async function createLesson(){const err=$('#aErr');err.textContent='';const s=addState.src,m=addState.method;
+  const text=($('#aText')?.value||'').trim();let source,title=$('#aTitle').value.trim();
+  if(s==='file'){if(!addState.file)return err.textContent='Avval audio yoki video faylni tanlang.';
+    source={type:'file',blob:addState.file,name:addState.file.name};title=title||addState.file.name.replace(/\.[^.]+$/,'')}
+  else if(s==='youtube'){const id=ytId($('#aYt').value);if(!id)return err.textContent='YouTube havolasi noto‘g‘ri. Masalan: https://youtu.be/xxxxxxxxxxx';source={type:'youtube',videoId:id};title=title||'YouTube dars'}
+  else if(s==='url'){const u=$('#aUrl').value.trim();if(!/^https?:\/\//.test(u))return err.textContent='To‘liq havola kiriting (https:// bilan boshlansin).';source={type:'url',url:u};title=title||decodeURIComponent(u.split('/').pop().split('?')[0]).replace(/\.[^.]+$/,'')||'Audio dars'}
+  else source={type:'tts'};
+  let segments=[];
+  if(m==='timed'){if(!text)return err.textContent='Subtitr matnini joylang.';segments=mergeSentences(parseTimed(text));
+    if(!segments.length)return err.textContent='Vaqtlar topilmadi. Matnni “Oddiy matn” sifatida joylab ko‘ring.'}
+  else if(m==='plain'){if(!text)return err.textContent='Inglizcha matnni joylang.';segments=splitSentences(text).map(t=>({start:null,end:null,text:t}))}
+  if(s==='tts'&&!title)title=(segments[0]?.text||'Matnli dars').split(' ').slice(0,6).join(' ');
+  const L={id:uid(),title,level:$('#aLevel').value,source,segments,progress:{done:[],hints:0,checks:0,shadow:{}},lastIndex:0,created:Date.now()};
+  await DB.put('lessons',L);
+  const needSync=m==='plain'&&s!=='tts';
+  go('lesson',{id:L.id,mode:(m==='auto'||needSync)?'edit':'dict',autoWhisper:m==='auto'});
+  if(needSync)toast('Endi “Vaqtni belgilash” tugmasini bosing va har gap tugaganda Space bosing.',5000)}
+
+/* ============ lesson shell ============ */
+async function openLesson(){const id=state.id;
+  if(!cur.lesson||cur.lesson.id!==id){cur.player&&cur.player.destroy();
+    const L=await DB.get('lessons',id);if(!L)return go('home');
+    L.progress=Object.assign({done:[],hints:0,checks:0,shadow:{}},L.progress||{});
+    L.touched=Date.now();DB.put('lessons',L);
+    cur.lesson=L;cur.idx=Math.min(L.lastIndex||0,Math.max(0,L.segments.length-1));cur.drafts={};cur.sync=null;
+    app.innerHTML=`<div id="lessonShell"><div class="lhead"><button class="icon-btn" data-go="home" aria-label="Darslarga qaytish">${I.back}</button>
+      <h1>${esc(L.title)}</h1><div class="chips"><span class="chip">${esc(srcLabel(L.source))}</span><span class="chip lvl">${esc(L.level||'')}</span></div>
+      <div class="lprog"><span id="lProgTxt"></span><div class="bar"><i id="lProgBar"></i></div></div></div>
+      <nav class="modes">${[['dict',I.pen,'Diktant'],['shadow',I.mic,'Shadowing'],['text',I.text,'Matn'],['edit',I.wave,'Tahrirlash']].map(([k,ic,t])=>`<button data-act="mode" data-mode="${k}">${ic}${t}</button>`).join('')}</nav>
+      <div id="playerHost" class="player-host"></div><div id="modePanel"></div></div>`;
+    cur.player=new Player(L,$('#playerHost'));cur.player.setRate(settings.speed)}
+  setMode(state.mode||'dict');
+  if(state.autoWhisper){state.autoWhisper=false;runWhisper()}}
+function setMode(m){if(cur.mode==='shadow'&&m!=='shadow')stopRecording(true);if(cur.sync)syncStop();
+  cur.mode=m;state.mode=m;cur.player&&cur.player.stop();
+  $$('.modes button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));renderPanel()}
+function updateProg(){const L=cur.lesson;const n=L.segments.length,d=L.progress.done.filter(i=>i<n).length;
+  $('#lProgTxt').textContent=n?`${d}/${n}`:'0/0';$('#lProgBar').style.width=(n?100*d/n:0)+'%'}
+function renderPanel(){const p=$('#modePanel');const m=cur.mode;updateProg();
+  if(m!=='edit'&&!cur.lesson.segments.length){p.innerHTML=`<div class="empty"><p>Bu darsda hali gaplar yo‘q.</p><button class="btn primary" data-act="mode" data-mode="edit">Matnni tayyorlash</button></div>`;return}
+  if(m==='dict'){p.innerHTML=dictPanel();const inp=$('#dictInput');inp.oninput=()=>{cur.drafts[cur.idx]=inp.value};inp.focus({preventScroll:true})}
+  else if(m==='shadow')p.innerHTML=shadowPanel();
+  else if(m==='text')p.innerHTML=textPanel();
+  else{p.innerHTML=editPanel()}}
+function playCur(){const seg=cur.lesson.segments[cur.idx];if(!seg)return;
+  if(cur.lesson.source.type!=='tts'&&seg.start==null&&!cur.warnedTts){cur.warnedTts=true;toast('Bu gapning vaqti belgilanmagan — kompyuter ovozida o‘qilmoqda.')}
+  cur.player.playSegment(seg,cur.mode==='dict'?settings.repeat:1)}
+function gotoSeg(i,autoplay=true){const n=cur.lesson.segments.length;if(i<0||i>=n)return;cur.idx=i;cur.lesson.lastIndex=i;saveLesson();renderPanel();if(autoplay)playCur()}
+function nextSeg(){if(cur.idx<cur.lesson.segments.length-1)gotoSeg(cur.idx+1);else toast('Bu darsning oxirgi gapi.')}
+function prevSeg(){gotoSeg(cur.idx-1)}
+function segGrid(){const L=cur.lesson;return `<aside class="seggrid"><h3>Gaplar</h3><div class="dots">${L.segments.map((s,j)=>`<button class="dot ${L.progress.done.includes(j)?'done':''} ${j===cur.idx?'cur':''}" data-act="goto" data-i="${j}" aria-label="${j+1}-gap">${j+1}</button>`).join('')}</div>
+  <div class="legend"><span style="color:var(--ok)">■ bajarilgan</span><span style="color:var(--accent)">□ hozirgi</span></div></aside>`}
+function controlsHtml(){return `<div class="controls">
+  <button class="icon-btn" data-act="prev" aria-label="Oldingi gap">${I.prev}</button>
+  <button class="play-big" data-act="play">${I.replay}<span>Tinglash</span></button>
+  <button class="icon-btn" data-act="next" aria-label="Keyingi gap">${I.next}</button>
+  <div class="sels"><label class="sel">Tezlik <select id="speedSel">${[0.5,0.75,1,1.25,1.5].map(r=>`<option value="${r}" ${r==settings.speed?'selected':''}>${r}×</option>`).join('')}</select></label>
+  ${cur.mode==='dict'?`<label class="sel">Takror <select id="repeatSel">${[1,2,3].map(r=>`<option ${r==settings.repeat?'selected':''}>${r}</option>`).join('')}</select></label>`:''}</div></div>`}
+function wordsHtml(text){const saved=new Set(cur.vocab.map(v=>v.word));
+  return text.split(/(\s+)/).map(t=>{if(/^\s+$/.test(t)||!t)return t;const w=t.replace(/^[^A-Za-z0-9']+|[^A-Za-z0-9']+$/g,'');if(!w)return esc(t);
+    return `<span class="w ${saved.has(w.toLowerCase())?'saved':''}" data-act="word" data-w="${esc(w)}">${esc(t)}</span>`}).join('')}
+
+/* ============ dictation ============ */
+function dictPanel(){const L=cur.lesson,i=cur.idx,seg=L.segments[i],done=L.progress.done.includes(i);cur.justDone=done;
+  return `<div class="work"><div class="pane">
+    <div class="segline"><span>${i+1}-gap / ${L.segments.length}</span>${done?`<span class="done-tag">${I.check} bajarilgan</span>`:''}</div>
+    ${controlsHtml()}
+    <div class="paper"><textarea id="dictInput" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-label="Eshitgan gapingiz" placeholder="Eshitganingizni shu yerga yozing…">${esc(cur.drafts[i]||'')}</textarea></div>
+    <div class="actions"><button class="btn primary" data-act="check">Tekshirish <kbd>Enter</kbd></button>
+      <button class="btn" data-act="hint">Keyingi so‘z</button><button class="btn" data-act="reveal">Javobni ko‘rsatish</button>
+      <button class="btn ghost" data-act="next">O‘tkazib yuborish</button></div>
+    <div id="feedback" class="feedback" aria-live="polite">${done?fbDone(seg,false):''}</div>
+    <p class="keys"><kbd>Ctrl</kbd> qayta tinglash · <kbd>Enter</kbd> tekshirish / keyingi gap · <kbd>Alt</kbd>+<kbd>←</kbd><kbd>→</kbd> gaplar orasida</p>
+  </div>${segGrid()}</div>`}
+function fbDone(seg,fresh){return `<div class="fb good"><strong>${fresh?'Barakalla! Hammasi to‘g‘ri.':'Bu gap bajarilgan.'}</strong><div class="toks">${wordsHtml(seg.text)}</div><small>Notanish so‘z ustiga bosing — ma’nosi chiqadi va lug‘atga qo‘shasiz. Enter — keyingi gap.</small></div>`}
+function fbPartial(r){const t=r.tokens.map(x=>x.s==='ok'?`<span class="tok ok">${esc(x.w)}</span>`:x.s==='bad'?`<span class="tok bad"><s>${esc(r.typedWrong)}</s>${mask(x.w)}</span>`:x.s==='next'?`<span class="tok next">${mask(x.w)}</span>`:`<span class="tok mask">${mask(x.w)}</span>`).join(' ');
+  return `<div class="fb"><strong>${r.okCount} / ${r.total} so‘z to‘g‘ri</strong><div class="toks">${t}</div><small>${r.typedWrong?'Qizil joydagi so‘zni qayta tinglang (Ctrl).':'Davomini yozing. Qiyin bo‘lsa — “Keyingi so‘z”.'}</small></div>`}
+function markDone(){const L=cur.lesson;if(!L.progress.done.includes(cur.idx)){L.progress.done.push(cur.idx);bump()}
+  saveLesson();updateProg();const d=$(`.dot[data-i="${cur.idx}"]`);d&&d.classList.add('done');
+  if(L.progress.done.filter(i=>i<L.segments.length).length===L.segments.length)toast('Dars to‘liq tugatildi! 🎉 Endi Shadowing bilan gapirishni mashq qiling.',4500)}
+function checkDict(){const seg=cur.lesson.segments[cur.idx],inp=$('#dictInput'),val=inp.value;
+  if(!val.trim()){playCur();return}
+  cur.lesson.progress.checks++;const r=compare(seg.text,val);
+  if(r.complete){markDone();$('#feedback').innerHTML=fbDone(seg,true);cur.justDone=true}
+  else{$('#feedback').innerHTML=fbPartial(r);cur.justDone=false}}
+function hintDict(){const seg=cur.lesson.segments[cur.idx],inp=$('#dictInput');const r=compare(seg.text,inp.value);if(r.complete)return checkDict();
+  inp.value=[...r.prefix,r.next].join(' ')+' ';cur.drafts[cur.idx]=inp.value;cur.lesson.progress.hints++;inp.focus();checkDict()}
+function revealDict(){const seg=cur.lesson.segments[cur.idx];
+  $('#feedback').innerHTML=`<div class="fb"><strong>To‘g‘ri javob</strong><div class="toks">${wordsHtml(seg.text)}</div><small>Endi gapni o‘zingiz yozib chiqing — shunda bajarilgan hisoblanadi.</small></div>`;$('#dictInput').focus()}
+
+/* ============ shadowing ============ */
+const rec={on:false};
+function shadowPanel(){const L=cur.lesson,i=cur.idx,seg=L.segments[i],best=L.progress.shadow[i];
+  return `<div class="work"><div class="pane">
+    <div class="segline"><span>${i+1}-gap / ${L.segments.length}</span>${best!=null?`<span>eng yaxshi natija: ${best}%</span>`:''}</div>
+    ${controlsHtml()}
+    <div class="sentence ${settings.hideShadow?'blur':''}" id="shSentence">${wordsHtml(seg.text)}</div>
+    <div class="row"><button class="play-big ${rec.on?'rec':''}" data-act="rec" id="recBtn">${rec.on?I.stop+'<span>To‘xtatish</span>':I.mic+'<span>Yozib olish</span>'}</button>
+      <button class="btn" data-act="playmine" id="mineBtn" ${cur.mineUrl?'':'disabled'}>${I.play} Mening ovozim</button>
+      <button class="btn ghost" data-act="toggle-hide">${settings.hideShadow?'Matnni ko‘rsatish':'Matnni yashirish'}</button></div>
+    <div id="shResult" aria-live="polite"></div>
+    <p class="keys">Avval tinglang, so‘ng xuddi shunday ohangda takrorlang. <kbd>Ctrl</kbd> — qayta tinglash.</p>
+  </div>${segGrid()}</div>`}
+async function startRecording(){cur.player.stop();if(cur.mineUrl){URL.revokeObjectURL(cur.mineUrl);cur.mineUrl=null}
+  try{rec.stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){toast('Mikrofonga ruxsat berilmadi. Brauzer sozlamalaridan ruxsat bering.',4000);return}
+  rec.chunks=[];rec.text='';rec.interim='';rec.on=true;
+  try{rec.mr=new MediaRecorder(rec.stream);rec.mr.ondataavailable=e=>e.data.size&&rec.chunks.push(e.data);rec.mr.start()}catch{rec.mr=null}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(SR){rec.sr=new SR();rec.sr.lang='en-US';rec.sr.continuous=true;rec.sr.interimResults=true;
+    rec.sr.onresult=e=>{let fin='',inter='';for(let k=0;k<e.results.length;k++){const r=e.results[k];if(r.isFinal)fin+=r[0].transcript+' ';else inter+=r[0].transcript+' '}rec.text=fin;rec.interim=inter;
+      const s=$('#shResult');if(s&&rec.on)s.innerHTML=`<p class="said">${esc((fin+inter).trim())||'…'}</p>`};
+    rec.sr.onerror=()=>{};try{rec.sr.start()}catch{}}else rec.sr=null;
+  $('#shResult').innerHTML=`<p class="said">Gapiring…${SR?'':' (bu brauzer nutqni matnga aylantira olmaydi — faqat yozib olinadi. Chrome yoki Edge tavsiya etiladi.)'}</p>`;
+  const b=$('#recBtn');b.classList.add('rec');b.innerHTML=I.stop+'<span>To‘xtatish</span>'}
+function stopRecording(silent){if(!rec.on)return;rec.on=false;
+  try{rec.sr&&rec.sr.stop()}catch{}
+  const done=()=>{rec.stream&&rec.stream.getTracks().forEach(t=>t.stop());
+    if(rec.chunks&&rec.chunks.length){cur.mineUrl=URL.createObjectURL(new Blob(rec.chunks,{type:rec.mr?.mimeType||'audio/webm'}))}
+    if(silent)return;const m=$('#mineBtn');if(m)m.disabled=!cur.mineUrl;
+    setTimeout(scoreShadow,rec.sr?700:0)};
+  if(rec.mr&&rec.mr.state!=='inactive'){rec.mr.onstop=done;rec.mr.stop()}else done();
+  const b=$('#recBtn');if(b&&!silent){b.classList.remove('rec');b.innerHTML=I.mic+'<span>Yozib olish</span>'}}
+function scoreShadow(){const box=$('#shResult');if(!box)return;const seg=cur.lesson.segments[cur.idx];
+  const said=(rec.text+' '+rec.interim).trim();
+  if(!(window.SpeechRecognition||window.webkitSpeechRecognition)){box.innerHTML=`<p class="said">Yozib olindi. “Mening ovozim” tugmasi bilan solishtiring.</p>`;return}
+  if(!said){box.innerHTML=`<div class="fb"><strong>Ovoz tanilmadi</strong><small>Mikrofonga yaqinroq, aniqroq gapiring va qayta urinib ko‘ring.</small></div>`;return}
+  const exp=seg.text.split(/\s+/);const {hit,score}=lcsMark(exp,said.split(/\s+/));
+  const L=cur.lesson;const prev=L.progress.shadow[cur.idx];if(prev==null||score>prev){L.progress.shadow[cur.idx]=score;saveLesson()}
+  if(prev==null)bump();
+  const col=score>=85?'var(--ok)':score>=60?'var(--warn)':'var(--bad)';
+  box.innerHTML=`<div class="fb ${score>=85?'good':''}"><div class="score"><b style="color:${col}">${score}%</b><span>${score>=85?'Ajoyib talaffuz!':score>=60?'Yaxshi, yana bir bor urinib ko‘ring.':'Sekinroq tezlikda tinglab, qayta takrorlang.'}</span></div>
+    <div class="toks" style="margin-top:.6rem">${exp.map((w,k)=>norm(w)?`<span class="tok ${hit[k]?'ok':'miss'}">${esc(w)}</span>`:esc(w)).join(' ')}</div>
+    <small>Siz aytdingiz: <span class="said">“${esc(said)}”</span>. Tagiga chizilgan so‘zlar tanilmadi.</small></div>`}
+
+/* ============ transcript ============ */
+function textPanel(){const L=cur.lesson;const full=L.segments.map(s=>s.text).join(' ');
+  return `<div class="toolbar"><button class="btn" data-act="copy-text">Matnni nusxalash</button>
+    <a class="btn ghost" target="_blank" rel="noopener" href="https://translate.google.com/?sl=en&tl=uz&op=translate&text=${encodeURIComponent(full.slice(0,4500))}">O‘zbekchaga tarjima (Google)</a></div>
+  <div class="tlist">${L.segments.map((s,i)=>`<div class="tline ${i===cur.idx?'on':''}" data-row="${i}"><button class="icon-btn" data-act="tplay" data-i="${i}" aria-label="${i+1}-gapni tinglash">${I.play}</button>
+    <span class="ts">${s.start!=null?fmtT(s.start):'#'+(i+1)}</span><p>${wordsHtml(s.text)}</p><span class="ck">${L.progress.done.includes(i)?I.check:''}</span></div>`).join('')}</div>
+  <p class="keys" style="margin-top:.8rem">So‘z ustiga bosing — inglizcha izohi, talaffuzi va o‘zbekcha ma’nosini lug‘atga saqlaysiz.</p>`}
+
+/* ============ editor ============ */
+function editPanel(){const L=cur.lesson,canW=L.source.type==='file'||L.source.type==='url',timed=L.source.type!=='tts';
+  return `<div class="toolbar">
+    ${canW?`<button class="btn primary" data-act="whisper">${I.wave} Avtomatik transkripsiya</button>
+      <label class="sel">Model <select id="modelSel">${[['Xenova/whisper-tiny.en','Tez (tiny, ~40 MB)'],['Xenova/whisper-base.en','O‘rtacha (base, ~80 MB)'],['Xenova/whisper-small.en','Aniq (small, ~250 MB)']].map(([v,t])=>`<option value="${v}" ${v===settings.model?'selected':''}>${t}</option>`).join('')}</select></label>`:''}
+    ${timed&&L.segments.length?`<button class="btn" data-act="sync-start">Vaqtni belgilash</button>`:''}
+    <button class="btn ghost" data-act="paste-text">Matnni almashtirish</button>
+    <span id="savedNote" class="saved-note" style="margin-left:auto"></span></div>
+  <div class="field"><label for="eTitle">Dars nomi</label><input id="eTitle" value="${esc(L.title)}"></div>
+  <div id="wStatus" class="status" hidden></div>
+  <div id="pasteBox" class="status" hidden><label for="pasteText" class="lbl">Yangi matn (oddiy matn yoki SRT/VTT/YouTube transcript)</label><textarea id="pasteText" rows="7" style="margin:.5rem 0"></textarea>
+    <div class="row"><button class="btn primary" data-act="paste-apply">Gaplarga bo‘lish</button><button class="btn ghost" data-act="paste-cancel">Bekor qilish</button></div></div>
+  <div id="syncBar" class="syncbar" hidden></div>
+  ${L.segments.length?`<p class="hint" style="margin:0 0 .7rem">Vaqt formati — daqiqa:soniya (1:23.4). Gapni o‘zgartirsangiz avtomatik saqlanadi.</p>`:`<div class="empty" style="margin-bottom:1rem"><p>${canW?'“Avtomatik transkripsiya” tugmasini bosing yoki matnni o‘zingiz joylang.':'“Matnni almashtirish” orqali matnni joylang.'}</p></div>`}
+  <ol class="seglist" id="segList">${L.segments.map(segRow).join('')}</ol>
+  <div class="row" style="margin-top:.8rem"><button class="btn" data-act="seg-add">+ Gap qo‘shish</button>
+  ${L.segments.length?`<button class="btn primary" data-act="mode" data-mode="dict" style="margin-left:auto">Diktantni boshlash →</button>`:''}</div>`}
+function segRow(s,i){const timed=cur.lesson.source.type!=='tts';
+  return `<li class="segrow ${cur.sync&&cur.sync.i===i?'cur':''}" data-i="${i}"><span class="num">${i+1}</span>
+    ${timed?`<div class="times"><input data-f="start" value="${fmtT(s.start)}" aria-label="Boshlanish" placeholder="0:00.0"><input data-f="end" value="${fmtT(s.end)}" aria-label="Tugash" placeholder="0:00.0"></div>`:'<span></span>'}
+    <textarea data-f="text" aria-label="${i+1}-gap matni">${esc(s.text)}</textarea>
+    <div class="acts"><button class="icon-btn" data-act="seg-play" aria-label="Tinglash">${I.play}</button>
+    ${i>0?`<button class="icon-btn" data-act="seg-merge" aria-label="Oldingi gap bilan birlashtirish" title="Oldingi gap bilan birlashtirish">${I.merge}</button>`:''}
+    <button class="icon-btn" data-act="seg-del" aria-label="O‘chirish">${I.trash}</button></div></li>`}
+function redrawSegs(){const l=$('#segList');if(l)l.innerHTML=cur.lesson.segments.map(segRow).join('')}
+function structChanged(){const L=cur.lesson;L.progress.done=[];L.progress.shadow={};cur.idx=Math.min(cur.idx,Math.max(0,L.segments.length-1));L.lastIndex=cur.idx;autosave();updateProg()}
+function onEditInput(e){const t=e.target;if(t.id==='eTitle'){cur.lesson.title=t.value;$('.lhead h1').textContent=t.value;return autosave()}
+  const li=t.closest('.segrow');if(!li)return;const s=cur.lesson.segments[+li.dataset.i],f=t.dataset.f;
+  if(f==='text')s.text=t.value;else{const v=parseT(t.value);if(v===undefined)return;s[f]=v}autosave()}
+/* tap sync */
+function syncStart(){const L=cur.lesson,segs=L.segments;if(!segs.length)return;let i=segs.findIndex(s=>s.end==null);if(i<0)i=0;
+  const from=i>0?(segs[i-1].end??0):(segs[0].start??0);segs[i].start=from;cur.sync={i};cur.player.playFrom(Math.max(0,from-0.05));drawSync();redrawSegs()}
+function drawSync(){const b=$('#syncBar');if(!b)return;if(!cur.sync){b.hidden=true;return}const segs=cur.lesson.segments,i=cur.sync.i;b.hidden=false;
+  b.innerHTML=`<div class="segline"><span>${i+1}-gap / ${segs.length} — gap tugagan zahoti “Belgilash”ni bosing</span></div>
+    <div class="now">${esc(segs[i].text)}</div>${segs[i+1]?`<div class="nxt">Keyingisi: ${esc(segs[i+1].text)}</div>`:''}
+    <div class="row"><button class="btn primary big" data-act="sync-mark">Belgilash <kbd>Space</kbd></button><button class="btn" data-act="sync-back">Orqaga</button><button class="btn ghost" data-act="sync-stop">To‘xtatish</button></div>`}
+function syncMark(){const segs=cur.lesson.segments,s=cur.sync;if(!s)return;const t=+cur.player.time().toFixed(2);segs[s.i].end=t;
+  if(s.i+1<segs.length){s.i++;segs[s.i].start=t}else{syncStop();toast('Barcha gaplar belgilandi! Endi diktantni boshlashingiz mumkin.',4000)}
+  autosave();redrawSegs();drawSync();const r=$(`.segrow[data-i="${s?.i}"]`);r&&r.scrollIntoView({block:'nearest'})}
+function syncBack(){const segs=cur.lesson.segments,s=cur.sync;if(!s)return;if(s.i>0){segs[s.i].start=null;s.i--}segs[s.i].end=null;
+  cur.player.playFrom(Math.max(0,(segs[s.i].start||0)-0.05));redrawSegs();drawSync()}
+function syncStop(){cur.sync=null;cur.player&&cur.player.stop();drawSync();redrawSegs()}
+
+/* ============ whisper ============ */
+let worker=null,wBusy=false;
+const WORKER_CODE=`import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
+let asr=null,cur=null;
+self.onmessage=async(e)=>{const {audio,model}=e.data;try{
+  if(!asr||cur!==model){asr=await pipeline('automatic-speech-recognition',model,{progress_callback:p=>self.postMessage({type:'progress',p})});cur=model;}
+  self.postMessage({type:'status'});
+  const out=await asr(audio,{return_timestamps:true,chunk_length_s:30,stride_length_s:5});
+  self.postMessage({type:'done',out});
+}catch(err){self.postMessage({type:'error',msg:String(err&&err.message||err)});}};`;
+function getWorker(){if(!worker)worker=new Worker(URL.createObjectURL(new Blob([WORKER_CODE],{type:'text/javascript'})),{type:'module'});return worker}
+async function decodeTo16k(blob){const buf=await blob.arrayBuffer();const AC=window.AudioContext||window.webkitAudioContext;const ctx=new AC();
+  let dec;try{dec=await ctx.decodeAudioData(buf)}finally{ctx.close()}
+  const off=new OfflineAudioContext(1,Math.ceil(dec.duration*16000),16000);const src=off.createBufferSource();src.buffer=dec;src.connect(off.destination);src.start();
+  return{data:(await off.startRendering()).getChannelData(0),dur:dec.duration}}
+async function runWhisper(){if(wBusy)return toast('Transkripsiya allaqachon ketyapti.');const L=cur.lesson;
+  if(!(L.source.type==='file'||L.source.type==='url'))return;
+  const st=()=>$('#wStatus');const show=html=>{const s=st();if(s){s.hidden=false;s.innerHTML=html}};
+  wBusy=true;show('<b>Audio tayyorlanmoqda…</b>');
+  try{let blob=L.source.blob;
+    if(L.source.type==='url'){try{const r=await fetch(L.source.url);if(!r.ok)throw 0;blob=await r.blob()}
+      catch{throw new Error('Bu havoladagi audioni yuklab bo‘lmadi (server ruxsat bermaydi). Faylni kompyuteringizga yuklab, “Audio / video fayl” sifatida qo‘shing.')}}
+    const {data,dur}=await decodeTo16k(blob);
+    const w=getWorker();const files={};const t0=Date.now();let tick;
+    const out=await new Promise((res,rej)=>{
+      w.onmessage=e=>{const m=e.data;
+        if(m.type==='progress'&&m.p.status==='progress'){files[m.p.file]=[m.p.loaded||0,m.p.total||0];
+          const a=Object.values(files).reduce((x,y)=>[x[0]+y[0],x[1]+y[1]],[0,0]);const pct=a[1]?Math.round(100*a[0]/a[1]):0;
+          show(`<b>Sun’iy intellekt modeli yuklanmoqda… ${pct}%</b><div class="hint">Faqat birinchi marta yuklanadi, keyin brauzerda saqlanib qoladi.</div><div class="bar"><i style="width:${pct}%"></i></div>`)}
+        else if(m.type==='status'){const upd=()=>{const s=Math.round((Date.now()-t0)/1000);show(`<b>Audio matnga aylantirilmoqda…</b><div class="hint">Audio uzunligi ${fmtT(dur).replace(/\.\d$/,'')}. Odatda audio uzunligining 10–50% vaqti ketadi. Sahifani yopmang. (${s} s)</div>`)};upd();tick=setInterval(upd,1000)}
+        else if(m.type==='done'){clearInterval(tick);res(m.out)}
+        else if(m.type==='error'){clearInterval(tick);rej(new Error(m.msg))}};
+      w.onerror=e=>{clearInterval(tick);rej(new Error('Model ishga tushmadi: '+(e.message||'internet aloqasini tekshiring')))};
+      w.postMessage({audio:data,model:settings.model},[data.buffer])});
+    let chunks=(out.chunks||[]).map(c=>({start:c.timestamp[0]??0,end:c.timestamp[1]??((c.timestamp[0]??0)+3),text:c.text}));
+    if(!chunks.length&&out.text)chunks=[{start:0,end:dur,text:out.text}];
+    chunks.forEach((c,i)=>{if(c.end>dur)c.end=dur;});
+    const segs=mergeSentences(chunks).filter(s=>s.text&&!/^\[.*\]$|^\(.*\)$/.test(s.text));
+    if(!segs.length)throw new Error('Audioda inglizcha nutq topilmadi.');
+    L.segments=segs;structChanged();await saveLesson();
+    if(cur.lesson===L&&cur.mode==='edit')renderPanel();
+    toast(`Tayyor! ${segs.length} ta gap ajratildi. Matnni tekshirib, diktantni boshlang.`,4500)}
+  catch(e){show(`<b style="color:var(--bad)">Transkripsiya bajarilmadi</b><div class="hint">${esc(e.message)}</div>`);worker&&worker.terminate();worker=null}
+  finally{wBusy=false}}
+
+/* ============ word modal & vocab ============ */
+function openModal(html){const m=$('#modal');m.innerHTML=`<div class="scrim" data-act="close-modal"></div><div class="sheet" role="dialog" aria-modal="true">${html}</div>`;m.hidden=false}
+function closeModal(){const m=$('#modal');m.hidden=true;m.innerHTML='';cur.wm=null}
+function hl(ctx,w){const re=new RegExp('\\b('+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')\\b','gi');return esc(ctx).replace(re,'<mark>$1</mark>')}
+async function openWord(word,ctx){word=word.toLowerCase().replace(/^'+|'+$/g,'');const ex=cur.vocab.find(v=>v.word===word);
+  cur.wm={word,ctx:ctx||ex?.context||'',def:ex?.def||'',phonetic:ex?.phonetic||''};
+  openModal(`<div class="wm-head"><h2>${esc(word)}</h2><button class="icon-btn" data-act="say" data-text="${esc(word)}" aria-label="Talaffuz">${I.speaker}</button><span class="phon" id="wmPhon">${esc(cur.wm.phonetic)}</span></div>
+    <div class="defs" id="wmDefs"><span class="hint">Inglizcha izoh qidirilmoqda…</span></div>
+    <div class="field" style="margin:0"><label for="wmMeaning">O‘zbekcha ma’nosi</label><input id="wmMeaning" value="${esc(ex?.meaning||'')}" placeholder="O‘zingiz yozing"></div>
+    ${cur.wm.ctx?`<p class="ctx">“${hl(cur.wm.ctx,word)}”</p>`:''}
+    <div class="row"><button class="btn primary" data-act="save-word">${ex?'Yangilash':'Lug‘atga qo‘shish'}</button>
+    <a class="btn ghost" target="_blank" rel="noopener" href="https://translate.google.com/?sl=en&tl=uz&op=translate&text=${encodeURIComponent(word)}">Google Translate</a>
+    <button class="btn ghost" data-act="close-modal">Yopish</button></div>`);
+  setTimeout(()=>$('#wmMeaning')?.focus(),50);
+  try{const r=await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+encodeURIComponent(word));if(!r.ok)throw 0;const d=await r.json();
+    if(!cur.wm||cur.wm.word!==word)return;const e=d[0];const ph=e.phonetic||(e.phonetics||[]).find(p=>p.text)?.text||'';
+    cur.wm.phonetic=ph;$('#wmPhon').textContent=ph;
+    const parts=(e.meanings||[]).slice(0,3);cur.wm.def=parts[0]?.definitions?.[0]?.definition||'';
+    $('#wmDefs').innerHTML=parts.map(p=>`<div><em>${esc(p.partOfSpeech)}</em> ${p.definitions.slice(0,2).map(x=>`<div>${esc(x.definition)}${x.example?`<div class="ex">${esc(x.example)}</div>`:''}</div>`).join('')}</div>`).join('')}
+  catch{if(cur.wm&&cur.wm.word===word){const d=$('#wmDefs');if(d)d.innerHTML='<span class="hint">Inglizcha izoh topilmadi.</span>'}}}
+async function saveWord(o){const w=o.word.toLowerCase().trim();if(!w)return;let v=cur.vocab.find(x=>x.word===w);
+  if(v)Object.assign(v,{meaning:o.meaning??v.meaning,def:o.def||v.def,phonetic:o.phonetic||v.phonetic,context:o.context||v.context});
+  else v={id:uid(),word:w,meaning:o.meaning||'',def:o.def||'',phonetic:o.phonetic||'',context:o.context||'',lessonId:cur.lesson?.id||null,box:0,due:Date.now(),added:Date.now()};
+  await DB.put('vocab',v);await refreshVocab();return v}
+function vocabView(q=''){const due=cur.vocab.filter(v=>v.due<=Date.now()).length;
+  const list=cur.vocab.filter(v=>!q||v.word.includes(q.toLowerCase())||(v.meaning||'').toLowerCase().includes(q.toLowerCase())).sort((a,b)=>b.added-a.added);
+  return `<div class="sec-head"><h1 style="font-size:2rem">Lug‘at</h1><button class="btn primary" data-go="review" ${due?'':'disabled'}>Takrorlash${due?` (${due})`:''}</button></div>
+  <p class="lead">${cur.vocab.length} ta so‘z. Har bir so‘z oraliq takrorlash (1 → 3 → 7 → 16 → 35 kun) bilan esingizda qoladi.</p>
+  <form class="addw" id="addWord"><input id="nwWord" placeholder="Inglizcha so‘z" required><input id="nwMean" placeholder="O‘zbekcha ma’nosi"><button class="btn primary">Qo‘shish</button></form>
+  <div class="vtools"><input id="vSearch" placeholder="Qidirish…" value="${esc(q)}"></div>
+  ${list.length?`<div class="vlist">${list.map(v=>`<article class="vcard"><div class="top-line"><h3>${esc(v.word)}</h3><button class="icon-btn" data-act="say" data-text="${esc(v.word)}" aria-label="Talaffuz">${I.speaker}</button><button class="icon-btn" data-act="vedit" data-w="${esc(v.word)}" aria-label="Tahrirlash">${I.pen}</button><button class="icon-btn" data-act="vdel" data-id="${v.id}" aria-label="O‘chirish">${I.trash}</button></div>
+    ${v.phonetic?`<span class="phon">${esc(v.phonetic)}</span>`:''}${v.meaning?`<div class="mean">${esc(v.meaning)}</div>`:''}${v.def?`<div class="hint" style="margin:0">${esc(v.def)}</div>`:''}
+    ${v.context?`<p class="ctx">“${hl(v.context,v.word)}”</p>`:''}<div class="boxes" title="Yodlash darajasi">${[1,2,3,4,5].map(k=>`<i class="${v.box>=k?'on':''}"></i>`).join('')}</div></article>`).join('')}</div>`
+  :`<div class="empty">${q?'Hech narsa topilmadi.':'Lug‘at bo‘sh. Diktant yoki Matn bo‘limida so‘z ustiga bosing — shu yerga tushadi.'}</div>`}`}
+
+/* ============ review ============ */
+const INTERVALS=[0,1,3,7,16,35];const rv={queue:[],i:0,shown:false};
+function startReview(){rv.queue=cur.vocab.filter(v=>v.due<=Date.now()).sort(()=>Math.random()-.5);rv.i=0;rv.shown=false;drawReview()}
+function drawReview(){const v=rv.queue[rv.i];
+  if(!v){app.innerHTML=`<div class="flash"><div class="fcard"><h2>Hammasi takrorlandi</h2><p class="hint">Keyingi so‘zlar o‘z vaqtida shu yerda paydo bo‘ladi.</p></div><button class="btn" data-go="vocab">Lug‘atga qaytish</button></div>`;return}
+  app.innerHTML=`<div class="flash"><div class="segline"><span>${rv.i+1} / ${rv.queue.length}</span><button class="btn ghost" data-go="vocab">Tugatish</button></div>
+    <div class="fcard"><h2>${esc(v.word)}</h2>${v.phonetic?`<span class="phon">${esc(v.phonetic)}</span>`:''}<button class="icon-btn" data-act="say" data-text="${esc(v.word)}" aria-label="Talaffuz">${I.speaker}</button>
+    ${rv.shown?`<div class="mean" style="font-size:1.3rem">${esc(v.meaning||'—')}</div>${v.def?`<div class="hint">${esc(v.def)}</div>`:''}${v.context?`<p class="ctx">“${hl(v.context,v.word)}”</p>`:''}`:''}</div>
+    ${rv.shown?`<div class="grades"><button class="btn" data-act="grade" data-g="0">Bilmadim <kbd>1</kbd></button><button class="btn" data-act="grade" data-g="1">Qiyin <kbd>2</kbd></button><button class="btn primary" data-act="grade" data-g="2">Bildim <kbd>3</kbd></button></div>`
+    :`<button class="btn primary big" data-act="show-ans" style="justify-content:center">Javobni ko‘rish <kbd>Space</kbd></button>`}</div>`;
+  if(!rv.shown)speak(v.word,0.9)}
+async function grade(g){const v=rv.queue[rv.i];if(!v)return;
+  if(g===0){v.box=0;v.due=Date.now();rv.queue.push(v)}else if(g===1){v.due=Date.now()+DAY}else{v.box=Math.min(v.box+1,5);v.due=Date.now()+INTERVALS[v.box]*DAY}
+  await DB.put('vocab',v);rv.i++;rv.shown=false;await refreshVocab();drawReview()}
+
+/* ============ settings ============ */
+function settingsView(){const voices=('speechSynthesis' in window?speechSynthesis.getVoices():[]).filter(v=>/^en/i.test(v.lang));
+  return `<section class="narrow"><h1 style="font-size:2rem;margin-bottom:1rem">Sozlamalar</h1>
+  <div class="set"><h2>Tinglash</h2><div class="two">
+    <div class="field"><label for="sSpeed">Standart tezlik</label><select id="sSpeed" data-set="speed">${[0.5,0.75,1,1.25,1.5].map(r=>`<option value="${r}" ${r==settings.speed?'selected':''}>${r}×</option>`).join('')}</select></div>
+    <div class="field"><label for="sRepeat">Har gap necha marta eshittiriladi</label><select id="sRepeat" data-set="repeat">${[1,2,3].map(r=>`<option ${r==settings.repeat?'selected':''}>${r}</option>`).join('')}</select></div></div>
+    <div class="field"><label for="sVoice">Kompyuter ovozi (matnli darslar uchun)</label><select id="sVoice" data-set="voice"><option value="">Avtomatik</option>${voices.map(v=>`<option ${v.name===settings.voice?'selected':''}>${esc(v.name)}</option>`).join('')}</select></div>
+    <button class="btn" data-act="say" data-text="This is how your lessons will sound.">${I.speaker} Ovozni sinash</button></div>
+  <div class="set"><h2>Avtomatik transkripsiya</h2>
+    <div class="two"><div class="field"><label for="sModel">Whisper modeli</label><select id="sModel" data-set="model">${[['Xenova/whisper-tiny.en','Tez — tiny (~40 MB)'],['Xenova/whisper-base.en','O‘rtacha — base (~80 MB)'],['Xenova/whisper-small.en','Aniq — small (~250 MB)']].map(([v,t])=>`<option value="${v}" ${v===settings.model?'selected':''}>${t}</option>`).join('')}</select></div>
+    <div class="field"><label for="sMax">Bir gapdagi eng ko‘p so‘z</label><select id="sMax" data-set="maxWords">${[12,16,22,30].map(r=>`<option ${r==settings.maxWords?'selected':''}>${r}</option>`).join('')}</select></div></div>
+    <p class="hint">Model internetdan bir marta yuklanadi va brauzerda saqlanadi. Audio hech qayerga yuborilmaydi — hammasi kompyuteringizda ishlaydi.</p></div>
+  <div class="set"><h2>Ma’lumotlar</h2><p class="hint" style="margin:0 0 .8rem">Darslar va lug‘at shu brauzerda saqlanadi. Boshqa kompyuterga ko‘chirish uchun zaxira oling.</p>
+    <div class="row"><button class="btn" data-act="export">Zaxira faylini yuklab olish</button><label class="btn">Zaxiradan tiklash<input type="file" id="importFile" accept=".json" hidden></label>
+    <button class="btn ghost danger" data-act="wipe">Hammasini o‘chirish</button></div></div></section>`}
+async function blobToDataURL(b){return new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(b)})}
+async function exportData(){toast('Zaxira tayyorlanmoqda…');const lessons=await DB.all('lessons');const out=[];
+  for(const l of lessons){const c={...l,source:{...l.source}};if(c.source.blob){c.source.blobData=await blobToDataURL(c.source.blob);delete c.source.blob}out.push(c)}
+  const data={app:'diktant-daftar',v:1,lessons:out,vocab:await DB.all('vocab'),stats:loadLS('dd_stats',{days:{}})};
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));a.download='diktant-daftar-zaxira-'+today()+'.json';document.body.appendChild(a);a.click();a.remove()}
+async function importData(file){try{const d=JSON.parse(await file.text());if(d.app!=='diktant-daftar')throw 0;
+  for(const l of d.lessons||[]){if(l.source.blobData){l.source.blob=await (await fetch(l.source.blobData)).blob();delete l.source.blobData}await DB.put('lessons',l)}
+  for(const v of d.vocab||[])await DB.put('vocab',v);if(d.stats)saveLS('dd_stats',d.stats);await refreshVocab();toast('Zaxira tiklandi.');go('home')}
+  catch{toast('Bu fayl Diktant Daftar zaxirasi emas.')}}
+
+/* ============ events ============ */
+const armed=new Map();
+function armOnce(btn,label){const k=btn.dataset.id||btn.dataset.act;if(armed.get(k)&&Date.now()-armed.get(k)<4000){armed.delete(k);return true}
+  armed.set(k,Date.now());const old=btn.textContent;btn.textContent=label;setTimeout(()=>{if(btn.isConnected)btn.textContent=old},4000);return false}
+document.addEventListener('click',async e=>{const g=e.target.closest('[data-go]');if(g&&!g.disabled){e.preventDefault();return go(g.dataset.go)}
+  const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const a=b.dataset.act;
+  switch(a){
+    case 'open':go('lesson',{id:b.dataset.id,mode:b.dataset.mode});break;
+    case 'del-lesson':if(armOnce(b,'Rostdan o‘chirilsinmi?')){await DB.del('lessons',b.dataset.id);render()}break;
+    case 'src':addState.src=b.dataset.src;renderAddParts();break;
+    case 'create':createLesson();break;
+    case 'mode':setMode(b.dataset.mode);break;
+    case 'play':playCur();break;
+    case 'prev':prevSeg();break;
+    case 'next':nextSeg();break;
+    case 'goto':gotoSeg(+b.dataset.i);break;
+    case 'check':checkDict();break;
+    case 'hint':hintDict();break;
+    case 'reveal':revealDict();break;
+    case 'rec':rec.on?stopRecording():startRecording();break;
+    case 'playmine':if(cur.mineUrl){cur.player.stop();new Audio(cur.mineUrl).play()}break;
+    case 'toggle-hide':settings.hideShadow=!settings.hideShadow;saveSettings();$('#shSentence').classList.toggle('blur',settings.hideShadow);b.textContent=settings.hideShadow?'Matnni ko‘rsatish':'Matnni yashirish';break;
+    case 'tplay':{const i=+b.dataset.i;cur.idx=i;$$('.tline').forEach(r=>r.classList.toggle('on',+r.dataset.row===i));cur.player.playSegment(cur.lesson.segments[i]);break}
+    case 'copy-text':{const t=cur.lesson.segments.map(s=>s.text).join('\n');try{await navigator.clipboard.writeText(t);toast('Matn nusxalandi.')}catch{toast('Nusxalab bo‘lmadi.')}break}
+    case 'word':{const seg=b.closest('.tline')?cur.lesson.segments[+b.closest('.tline').dataset.row]:cur.lesson?.segments[cur.idx];openWord(b.dataset.w,seg?.text);break}
+    case 'say':speak(b.dataset.text,0.9);break;
+    case 'close-modal':closeModal();break;
+    case 'save-word':{const w=cur.wm;if(!w)break;const isNew=!cur.vocab.find(v=>v.word===w.word);await saveWord({word:w.word,meaning:$('#wmMeaning').value.trim(),def:w.def,phonetic:w.phonetic,context:w.ctx});
+      closeModal();toast(isNew?'Lug‘atga qo‘shildi.':'Yangilandi.');$$(`.w[data-w]`).forEach(s=>{if(s.dataset.w.toLowerCase()===w.word)s.classList.add('saved')});if(state.view==='vocab')app.innerHTML=vocabView($('#vSearch')?.value||'');break}
+    case 'vdel':await DB.del('vocab',b.dataset.id);await refreshVocab();app.innerHTML=vocabView($('#vSearch')?.value||'');break;
+    case 'vedit':openWord(b.dataset.w);break;
+    case 'show-ans':rv.shown=true;drawReview();break;
+    case 'grade':grade(+b.dataset.g);break;
+    case 'whisper':runWhisper();break;
+    case 'sync-start':syncStart();break;
+    case 'sync-mark':syncMark();b.blur();break;
+    case 'sync-back':syncBack();break;
+    case 'sync-stop':syncStop();break;
+    case 'seg-play':{const i=+b.closest('.segrow').dataset.i;cur.player.playSegment(cur.lesson.segments[i]);break}
+    case 'seg-del':{const i=+b.closest('.segrow').dataset.i;cur.lesson.segments.splice(i,1);structChanged();redrawSegs();break}
+    case 'seg-merge':{const i=+b.closest('.segrow').dataset.i,S=cur.lesson.segments;S[i-1].text+=' '+S[i].text;S[i-1].end=S[i].end;S.splice(i,1);structChanged();redrawSegs();break}
+    case 'seg-add':{const S=cur.lesson.segments,last=S[S.length-1];S.push({start:last?.end??null,end:null,text:''});structChanged();redrawSegs();$$('#segList textarea').pop()?.focus();break}
+    case 'paste-text':$('#pasteBox').hidden=false;$('#pasteText').focus();break;
+    case 'paste-cancel':$('#pasteBox').hidden=true;break;
+    case 'paste-apply':{const t=$('#pasteText').value.trim();if(!t)break;const timed=/-->/.test(t)||/^\s*(\d{1,2}:)?\d{1,2}:\d{2}\s*$/m.test(t);
+      cur.lesson.segments=timed?mergeSentences(parseTimed(t)):splitSentences(t).map(x=>({start:null,end:null,text:x}));structChanged();renderPanel();
+      toast(timed?'Vaqtlar bilan bo‘lindi.':(cur.lesson.source.type==='tts'?'Matn gaplarga bo‘lindi.':'Endi “Vaqtni belgilash”ni bosing.'),3500);break}
+    case 'export':exportData();break;
+    case 'wipe':if(armOnce(b,'Rostdan hammasi o‘chirilsinmi?')){await DB.clear('lessons');await DB.clear('vocab');saveLS('dd_stats',{days:{}});saveLS('dd_seeded',true);await refreshVocab();toast('Hammasi o‘chirildi.');go('home')}break;
+  }});
+document.addEventListener('input',e=>{if(state.view==='lesson'&&cur.mode==='edit')onEditInput(e);
+  if(e.target.id==='vSearch'){const q=e.target.value,pos=e.target.selectionStart;app.innerHTML=vocabView(q);const s=$('#vSearch');s.focus();s.setSelectionRange(pos,pos)}});
+document.addEventListener('change',e=>{const t=e.target;
+  if(t.id==='speedSel'){settings.speed=+t.value;saveSettings();cur.player&&cur.player.setRate(settings.speed)}
+  else if(t.id==='repeatSel'){settings.repeat=+t.value;saveSettings()}
+  else if(t.id==='modelSel'){settings.model=t.value;saveSettings()}
+  else if(t.dataset.set){const k=t.dataset.set;settings[k]=['speed','repeat','maxWords'].includes(k)?+t.value:t.value;saveSettings()}
+  else if(t.id==='importFile'&&t.files[0])importData(t.files[0])});
+document.addEventListener('submit',async e=>{if(e.target.id==='addWord'){e.preventDefault();const w=$('#nwWord').value.trim();if(!w)return;
+  await saveWord({word:w,meaning:$('#nwMean').value.trim()});app.innerHTML=vocabView();toast('Qo‘shildi.');$('#nwWord').focus()}});
+let ctrlAlone=false;
+document.addEventListener('keydown',e=>{
+  if(e.key==='Control'){ctrlAlone=!e.repeat;return}ctrlAlone=false;
+  if(e.key==='Escape'&&!$('#modal').hidden)return closeModal();
+  if(!$('#modal').hidden){if(e.key==='Enter'&&e.target.id==='wmMeaning'){e.preventDefault();$('[data-act="save-word"]').click()}return}
+  if(state.view==='review'){if(e.code==='Space'&&!rv.shown){e.preventDefault();rv.shown=true;drawReview()}else if(rv.shown&&['1','2','3'].includes(e.key))grade(+e.key-1);return}
+  if(state.view!=='lesson')return;
+  const typing=/INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
+  if(e.altKey&&e.key==='ArrowRight'){e.preventDefault();nextSeg()}
+  else if(e.altKey&&e.key==='ArrowLeft'){e.preventDefault();prevSeg()}
+  else if(cur.mode==='dict'&&e.key==='Enter'&&!e.shiftKey&&e.target.id==='dictInput'){e.preventDefault();cur.justDone?nextSeg():checkDict()}
+  else if(cur.mode==='edit'&&cur.sync&&e.code==='Space'&&!typing){e.preventDefault();syncMark()}});
+document.addEventListener('keyup',e=>{if(e.key==='Control'&&ctrlAlone&&state.view==='lesson'&&(cur.mode==='dict'||cur.mode==='shadow'))playCur();ctrlAlone=false});
+if('speechSynthesis' in window)speechSynthesis.onvoiceschanged=()=>{if(state.view==='settings')app.innerHTML=settingsView()};
+
+/* ============ boot ============ */
+const SAMPLE=`Last week I started a new job at a small bookshop. On my first morning, I arrived twenty minutes early because I was nervous. The manager, Linda, showed me around the shop and explained my tasks. I had to help customers, organize the shelves, and answer the phone. At first, I made a few mistakes with the cash register. Linda smiled and told me not to worry. By the afternoon, I felt much more confident. A young girl asked me to recommend an adventure story, and she bought two books. When I walked home that evening, I was tired but very happy.`;
+(async()=>{try{await DB.open()}catch{app.innerHTML='<div class="empty">Brauzer ma’lumot saqlashga ruxsat bermadi. Oddiy (yashirin bo‘lmagan) oynada oching.</div>';return}
+  if(!loadLS('dd_seeded',false)){await DB.put('lessons',{id:'sample',title:'My First Day at the Bookshop',level:'A2',source:{type:'tts'},
+    segments:splitSentences(SAMPLE).map(t=>({start:null,end:null,text:t})),progress:{done:[],hints:0,checks:0,shadow:{}},lastIndex:0,created:Date.now()-1000});saveLS('dd_seeded',true)}
+  await refreshVocab();render()})();
+</script>
+</body>
+</html>
