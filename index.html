@@ -200,6 +200,18 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none}
 .toolbar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
 .status{border:1px solid var(--line);background:var(--sheet);border-radius:12px;padding:.9rem 1rem;margin-bottom:1rem}
 .status .bar{margin-top:.6rem}
+.bar.indet{position:relative}
+.bar.indet i{position:absolute;width:35%;animation:indet 1.3s ease-in-out infinite}
+@keyframes indet{from{left:-35%}to{left:100%}}
+.importbox{border-color:var(--accent);display:flex;flex-direction:column;gap:.6rem}
+.importbox textarea{background:var(--paper)}
+.howto{margin:0;padding-left:1.3rem;display:flex;flex-direction:column;gap:.35rem;font-size:.93rem;color:var(--muted)}
+.howto b{color:var(--ink)}
+.ytprev{display:flex;gap:.8rem;align-items:center;margin-top:.6rem;padding:.5rem;border:1px solid var(--line);border-radius:10px;background:var(--sheet);min-width:0}
+.ytprev img{border-radius:6px;flex:none;width:120px;height:auto;aspect-ratio:16/9;object-fit:cover;background:var(--line)}
+.ytprev div{display:flex;flex-direction:column;min-width:0}
+.ytprev b{overflow-wrap:anywhere}
+.paper.drag,.importbox textarea.drag,#aText.drag{outline:2px dashed var(--accent)}
 .syncbar{border:2px solid var(--margin);background:var(--sheet);border-radius:12px;padding:1rem;margin-bottom:1rem;display:flex;flex-direction:column;gap:.7rem}
 .syncbar .now{font-size:1.25rem;line-height:1.5}
 .syncbar .nxt{color:var(--muted);font-size:.9rem}
@@ -405,11 +417,39 @@ function splitSentences(text){const out=[];
       else out.push(p)}}
   return out.filter(Boolean)}
 function tsToSec(s){s=s.trim().replace(',','.');const p=s.split(':').map(Number);return p.reduce((a,b)=>a*60+b,0)}
+function decodeEnt(s){return String(s).replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(+n)).replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCharCode(parseInt(n,16)))
+  .replace(/&nbsp;/g,' ').replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&')}
+function cleanCap(s){return decodeEnt(String(s).replace(/<[^>]+>/g,'')).replace(/\[[^\]]*\]/g,' ').replace(/[♪♫]/g,' ').replace(/^\s*(>>|-)\s*/,'').replace(/\s+/g,' ').trim()}
+/* SRT / VTT, including YouTube auto-captions where each cue repeats the previous line */
+function parseCues(text){const cues=[];const all=text.replace(/\r/g,'').split('\n');
+  const idx=all.map((l,i)=>l.includes('-->')?i:-1).filter(i=>i>=0);
+  idx.forEach((k,n)=>{const [a,b]=all[k].split('-->');let body=all.slice(k+1,n+1<idx.length?idx[n+1]:all.length);
+    while(body.length&&!body[body.length-1].trim())body.pop();
+    if(n+1<idx.length&&body.length&&/^\s*\d+\s*$/.test(body[body.length-1])&&(body.length===1||!body[body.length-2].trim()))body.pop();
+    const tl=body.map(cleanCap).filter(Boolean);
+    if(tl.length)cues.push({start:tsToSec(a),end:tsToSec(b.trim().split(/\s/)[0]),lines:tl})});
+  const out=[];let prev=[];
+  for(const c of cues){if(c.end-c.start<0.06&&c.lines.join(' ')===prev.join(' '))continue;
+    let ls=c.lines;while(ls.length&&prev.includes(ls[0]))ls=ls.slice(1);
+    prev=c.lines;if(ls.length)out.push({start:c.start,end:c.end,text:ls.join(' ')})}
+  return out}
+/* YouTube json3 */
+function parseJson3(t){const j=JSON.parse(t);return(j.events||[]).filter(e=>e.segs).map(e=>({start:(e.tStartMs||0)/1000,end:((e.tStartMs||0)+(e.dDurationMs||0))/1000,text:cleanCap(e.segs.map(s=>s.utf8||'').join(''))})).filter(c=>c.text)}
+/* YouTube timedtext XML (<text start="" dur="">) */
+function parseXmlCaps(t){const out=[];const re=/<text[^>]*\bstart="([\d.]+)"[^>]*?(?:\bdur="([\d.]+)")?[^>]*>([\s\S]*?)<\/text>/g;let m;
+  while((m=re.exec(t))){const st=+m[1],du=+(m[2]||3);const tx=cleanCap(decodeEnt(m[3]));if(tx)out.push({start:st,end:st+du,text:tx})}return out}
+/* Any imported text → lesson segments */
+function importToSegments(raw){const t=String(raw||'').replace(/^﻿/,'').trim();if(!t)return{segs:[],timed:false};let chunks=null;
+  if(t[0]==='{'){try{chunks=parseJson3(t)}catch{}}
+  if(!chunks?.length&&/<text[\s>]/.test(t))chunks=parseXmlCaps(t);
+  if(!chunks?.length&&t.includes('-->'))chunks=parseCues(t);
+  if(!chunks?.length&&/^\s*(\d{1,2}:)?\d{1,2}:\d{2}(\s|$)/m.test(t))chunks=parseTimed(t);
+  if(chunks&&chunks.length)return{segs:smartMerge(chunks),timed:true};
+  return{segs:splitSentences(t).map(x=>({start:null,end:null,text:x})),timed:false}}
+function smartMerge(chunks){const punct=chunks.filter(c=>/[.!?]["'”’)\]]*$/.test(c.text.trim())).length/chunks.length;
+  return mergeSentences(chunks,punct<0.25?Math.min(settings.maxWords,14):settings.maxWords).filter(s=>s.text)}
 function parseTimed(text){text=text.replace(/\r/g,'');const chunks=[];
-  if(text.includes('-->')){
-    for(const block of text.split(/\n\s*\n/)){const lines=block.split('\n');const k=lines.findIndex(l=>l.includes('-->'));if(k<0)continue;
-      const [a,b]=lines[k].split('-->');const t=lines.slice(k+1).join(' ').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
-      if(t)chunks.push({start:tsToSec(a),end:tsToSec(b.trim().split(/\s/)[0]),text:t})}
+  if(text.includes('-->')){return parseCues(text)
   }else{
     const tsRe=/^\s*(\d{1,2}:)?\d{1,2}:\d{2}\s*$/;const lines=text.split('\n');let curC=null;
     for(const raw of lines){const l=raw.trim();if(!l)continue;
@@ -419,7 +459,7 @@ function parseTimed(text){text=text.replace(/\r/g,'');const chunks=[];
       else if(/^\d+\s+(second|minute|hour|soniya|daqiqa)/i.test(l))continue;
       else if(curC)curC.text+=(curC.text?' ':'')+l}
     chunks.forEach((c,i)=>c.end=chunks[i+1]?chunks[i+1].start:c.start+5)}
-  return chunks.filter(c=>c.text.trim())}
+  return chunks.map(c=>({...c,text:cleanCap(c.text)})).filter(c=>c.text)}
 function mergeSentences(chunks,maxWords=settings.maxWords){const out=[];let acc=null;
   for(const c of chunks){const t=c.text.trim();if(!t)continue;
     if(!acc)acc={start:c.start,end:c.end,text:t};else{acc.text+=' '+t;acc.end=c.end}
@@ -428,6 +468,45 @@ function mergeSentences(chunks,maxWords=settings.maxWords){const out=[];let acc=
   if(acc)out.push(acc);
   return out.map(s=>({start:+(+s.start).toFixed(2),end:+(+s.end).toFixed(2),text:s.text.replace(/\s+/g,' ').trim()}))}
 function ytId(url){const m=String(url).match(/(?:youtu\.be\/|v=|shorts\/|embed\/|live\/)([\w-]{11})/);return m?m[1]:(/^[\w-]{11}$/.test(url.trim())?url.trim():null)}
+
+/* ============ YouTube transcript finder ============
+   Browsers cannot read youtube.com directly (CORS), so several public mirrors are asked at once
+   and the first English track that comes back wins. Any of them may be down on a given day. */
+const YT_SRC={
+  inv:['inv.nadeko.net','yewtu.be','invidious.nerdvpn.de','invidious.f5.si','inv.tux.pizza','invidious.privacyredirect.com','iv.melmac.space','invidious.reallyaweso.me','yt.artemislena.eu'],
+  piped:['pipedapi.kavin.rocks','pipedapi.adminforge.de','api.piped.private.coffee','pipedapi.leptons.xyz','pipedapi.reallyaweso.me','pipedapi.nosebs.ru'],
+  proxies:[u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),u=>'https://corsproxy.io/?url='+encodeURIComponent(u),u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u)]};
+async function tfetch(url,ms,sig){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);const on=()=>c.abort();sig&&sig.addEventListener('abort',on);
+  try{const r=await fetch(url,{signal:c.signal});if(!r.ok)throw new Error('HTTP '+r.status);return r}finally{clearTimeout(t);sig&&sig.removeEventListener('abort',on)}}
+function pickEn(list,get){const en=list.filter(x=>/^en\b|^en[-_]/i.test(get(x).lang||''));return en.find(x=>!get(x).auto)||en[0]||null}
+const looksTimed=t=>/-->/.test(t)||/^\s*\{[\s\S]*"events"/.test(t)||/<text[\s>]/.test(t);
+async function ytViaInvidious(host,id,sig){const j=await (await tfetch(`https://${host}/api/v1/captions/${id}`,9000,sig)).json();
+  const caps=j.captions||[];const tr=pickEn(caps,c=>({lang:c.language_code||c.languageCode,auto:/auto/i.test(c.label||'')}));
+  if(!tr)throw new Error(caps.length?'noen':'nocap');
+  const txt=await (await tfetch(`https://${host}${tr.url}`,12000,sig)).text();if(!looksTimed(txt))throw new Error('bad');
+  return{text:txt,auto:/auto/i.test(tr.label||''),via:host}}
+async function ytViaPiped(host,id,sig){const j=await (await tfetch(`https://${host}/streams/${id}`,10000,sig)).json();
+  const subs=j.subtitles||[];const tr=pickEn(subs,s=>({lang:s.code,auto:!!s.autoGenerated}));
+  if(!tr)throw new Error(subs.length?'noen':'nocap');
+  const txt=await (await tfetch(tr.url,12000,sig)).text();if(!looksTimed(txt))throw new Error('bad');
+  return{text:txt,auto:!!tr.autoGenerated,via:host,title:j.title}}
+async function ytViaProxy(px,id,sig){const html=await (await tfetch(px(`https://www.youtube.com/watch?v=${id}&hl=en`),14000,sig)).text();
+  const i=html.indexOf('"captionTracks":');if(i<0)throw new Error(/playabilityStatus/.test(html)?'nocap':'bad');
+  const s=html.indexOf('[',i);let d=0,e=s;for(;e<html.length;e++){const ch=html[e];if(ch==='[')d++;else if(ch===']'&&--d===0)break}
+  const tracks=JSON.parse(html.slice(s,e+1));const tr=pickEn(tracks,t=>({lang:t.languageCode,auto:t.kind==='asr'}));
+  if(!tr)throw new Error('noen');
+  const txt=await (await tfetch(px(tr.baseUrl+'&fmt=json3'),12000,sig)).text();if(!looksTimed(txt))throw new Error('bad');
+  return{text:txt,auto:tr.kind==='asr',via:'youtube'}}
+async function ytInvidiousList(sig){try{const j=await (await tfetch('https://api.invidious.io/instances.json?sort_by=health',5000,sig)).json();
+  return j.filter(([h,o])=>o&&o.api&&o.type==='https').map(([h])=>h).filter(h=>!YT_SRC.inv.includes(h)).slice(0,8)}catch{return[]}}
+async function findYTTranscript(id){const ctl=new AbortController(),sig=ctl.signal;
+  const tries=[...YT_SRC.inv.map(h=>ytViaInvidious(h,id,sig)),...YT_SRC.piped.map(h=>ytViaPiped(h,id,sig)),...YT_SRC.proxies.map(p=>ytViaProxy(p,id,sig)),
+    ytInvidiousList(sig).then(hs=>hs.length?Promise.any(hs.map(h=>ytViaInvidious(h,id,sig))):Promise.reject(new Error('net')))];
+  const overall=new Promise((_,rej)=>setTimeout(()=>rej(new AggregateError([new Error('timeout')])),30000));
+  try{const r=await Promise.race([Promise.any(tries),overall]);ctl.abort();return r}
+  catch(e){ctl.abort();const msgs=(e.errors||[e]).flatMap(x=>x&&x.errors?x.errors:[x]).map(x=>x&&x.message);
+    throw new Error(msgs.includes('noen')?'noen':msgs.includes('nocap')?'nocap':'net')}}
+async function ytTitle(id){try{const j=await (await tfetch('https://noembed.com/embed?url='+encodeURIComponent('https://www.youtube.com/watch?v='+id),6000)).json();return j.title||''}catch{return''}}
 
 /* ============ comparison ============ */
 function compare(text,typed){const exp=text.trim().split(/\s+/).filter(Boolean);
@@ -491,17 +570,23 @@ function lessonCard(L){const n=L.segments.length,d=(L.progress?.done||[]).filter
 /* ============ add lesson ============ */
 const addState={src:'file',method:'auto',file:null};
 function addView(){return `<section class="narrow"><h1>Yangi dars</h1>
-  <p class="lead">Audio yoki video fayl, YouTube havolasi, audio URL yoki oddiy inglizcha matn qo‘shing. Faylning matnini sun’iy intellekt avtomatik yozib beradi.</p>
+  <p class="lead">Audio yoki video fayl, YouTube havolasi, audio URL yoki oddiy inglizcha matn qo‘shing. Audio faylning matnini sun’iy intellekt yozib beradi, YouTube videoning subtitri esa avtomatik qidiriladi.</p>
   <div class="two"><div class="field"><label for="aTitle">Sarlavha</label><input id="aTitle" placeholder="Masalan: 6 Minute English — Sleep"></div>
   <div class="field"><label for="aLevel">Daraja</label><select id="aLevel">${['A1','A2','B1','B2','C1','C2'].map(l=>`<option ${l==='B1'?'selected':''}>${l}</option>`).join('')}</select></div></div>
   <span class="lbl">Manba</span>
   <div class="tabs" role="tablist">${[['file','Audio / video fayl'],['youtube','YouTube havola'],['url','Audio havola (URL)'],['tts','Faqat matn']].map(([k,t])=>`<button role="tab" data-act="src" data-src="${k}">${t}</button>`).join('')}</div>
   <div id="srcBody" class="field"></div>
   <div class="field" id="methodWrap"><span class="lbl">Matn (script) qayerdan olinadi?</span><div id="methodBody" class="methods"></div></div>
-  <div class="field" id="textWrap"><label for="aText" id="aTextLbl">Matn</label><textarea id="aText" rows="9" spellcheck="false"></textarea><p class="hint" id="aTextHint"></p></div>
+  <div class="field" id="textWrap"><div class="row" style="justify-content:space-between"><label for="aText" id="aTextLbl">Matn</label>
+    <label class="btn ghost" for="aTextFile">Fayldan yuklash (.srt, .vtt, .txt)</label><input type="file" id="aTextFile" accept=".srt,.vtt,.txt,.json,.xml,.sbv,text/*" hidden></div>
+    <textarea id="aText" rows="9" spellcheck="false"></textarea><p class="hint" id="aTextHint"></p></div>
   <p id="aErr" class="err"></p>
   <button class="btn primary big" data-act="create">Darsni yaratish</button></section>`}
-function bindAdd(){addState.file=null;renderAddParts()}
+function bindAdd(){addState.file=null;addState.yt='';renderAddParts();
+  $('#aTitle').oninput=e=>{e.target.dataset.auto=''};
+  $('#aTextFile').onchange=e=>{const f=e.target.files[0];if(!f)return;readTextFile(f,t=>{$('#aText').value=t;
+    const r=importToSegments(t);if(r.timed&&addState.method!=='timed'){addState.method='timed';renderAddParts()}
+    toast(r.segs.length?`${f.name}: ${r.segs.length} ta gap${r.timed?', vaqtlari bilan':''}.`:'Faylda matn topilmadi.');e.target.value=''})}}
 function renderAddParts(){const s=addState.src;
   $$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.src===s));
   const sb=$('#srcBody');
@@ -509,37 +594,46 @@ function renderAddParts(){const s=addState.src;
     const d=$('#drop'),f=$('#aFile');f.onchange=()=>{addState.file=f.files[0]||null;renderAddParts()};
     d.ondragover=e=>{e.preventDefault();d.classList.add('over')};d.ondragleave=()=>d.classList.remove('over');
     d.ondrop=e=>{e.preventDefault();d.classList.remove('over');const fl=e.dataTransfer.files[0];if(fl){addState.file=fl;renderAddParts()}}}
-  else if(s==='youtube')sb.innerHTML=`<label for="aYt" class="lbl">YouTube havolasi</label><input id="aYt" type="url" placeholder="https://www.youtube.com/watch?v=…"><p class="hint">YouTube ovozini brauzerda avtomatik yozib bo‘lmaydi. Video ostidagi “…” → <b>Show transcript</b> matnini nusxalab pastga joylang — vaqtlari bilan avtomatik bo‘linadi.</p>`;
+  else if(s==='youtube'){sb.innerHTML=`<label for="aYt" class="lbl">YouTube havolasi</label><input id="aYt" type="url" placeholder="https://www.youtube.com/watch?v=…" value="${esc(addState.yt||'')}"><div id="ytPrev" class="ytprev" hidden></div>`;
+    const inp=$('#aYt');inp.oninput=()=>{addState.yt=inp.value;ytPreview()};ytPreview()}
   else if(s==='url')sb.innerHTML=`<label for="aUrl" class="lbl">Audio fayl havolasi</label><input id="aUrl" type="url" placeholder="https://…/episode.mp3"><p class="hint">To‘g‘ridan-to‘g‘ri .mp3 / .m4a havola. Avtomatik transkripsiya faqat server ruxsat bergan havolalarda ishlaydi; aks holda faylni yuklab, “Audio / video fayl” orqali qo‘shing.</p>`;
   else sb.innerHTML=`<p class="hint">Inglizcha matnni pastga joylang. Brauzer uni gapma-gap ovozda o‘qib beradi — kitob, maqola yoki darslik matnlari uchun qulay.</p>`;
-  const opts=s==='tts'?['plain']:s==='youtube'?['timed','plain']:['auto','timed','plain'];
+  const opts=s==='tts'?['plain']:s==='youtube'?['ytauto','timed','plain']:['auto','timed','plain'];
   if(!opts.includes(addState.method))addState.method=opts[0];
   const L={auto:['Avtomatik (Whisper)','Sun’iy intellekt audioni o‘zi yozib beradi. Brauzeringizda ishlaydi, birinchi marta model yuklanadi (~80 MB).'],
-    timed:['Vaqtli subtitr joylash','SRT, VTT yoki YouTube “Show transcript” matni. Vaqtlar avtomatik olinadi.'],
+    ytauto:['Avtomatik topish','Sayt videoning inglizcha subtitrini o‘zi qidiradi. Topilmasa, import oynasi ochiladi — matnni yoki faylni o‘zingiz qo‘shasiz.'],
+    timed:['Subtitr import qilish','.srt / .vtt faylni yuklang yoki YouTube “Show transcript” matnini joylang. Vaqtlar avtomatik olinadi.'],
     plain:['Oddiy matn joylash',s==='tts'?'Matn gaplarga bo‘linadi.':'Matn gaplarga bo‘linadi, vaqtini keyin bitta tugma bilan belgilaysiz.']};
   $('#methodWrap').hidden=s==='tts';
   $('#methodBody').innerHTML=opts.map(k=>`<label class="method"><input type="radio" name="method" value="${k}" ${k===addState.method?'checked':''}><span><b>${L[k][0]}</b><small>${L[k][1]}</small></span></label>`).join('');
   $$('#methodBody input').forEach(r=>r.onchange=()=>{addState.method=r.value;renderAddParts()});
-  const m=addState.method;$('#textWrap').hidden=m==='auto';
+  const m=addState.method;$('#textWrap').hidden=m==='auto'||m==='ytauto';
   $('#aTextLbl').textContent=m==='timed'?'Subtitr yoki transcript matni':'Inglizcha matn';
   $('#aText').placeholder=m==='timed'?'0:00\nHello and welcome to the show.\n0:04\nToday we are talking about sleep.':'Last week I started a new job at a small bookshop. On my first morning…';
   $('#aTextHint').textContent=m==='timed'?'Har bir qator oldidagi vaqt (0:04) yoki SRT/VTT formatidagi vaqtlar o‘qiladi.':'Har bir gap alohida mashqqa aylanadi.'}
+const ytTitles={};
+async function ytPreview(){const box=$('#ytPrev');if(!box)return;const raw=(addState.yt||'').trim(),id=ytId(raw);
+  if(!id){box.hidden=!raw;box.innerHTML=raw?'<span class="hint" style="color:var(--bad)">Havoladan video topilmadi. Masalan: https://youtu.be/xxxxxxxxxxx</span>':'';return}
+  box.hidden=false;const draw=t=>{if(ytId(addState.yt||'')!==id)return;box.innerHTML=`<img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" alt="" width="120" height="68"><div><b>${esc(t||'Video topildi')}</b><span class="hint">${id}</span></div>`};
+  draw(ytTitles[id]);if(ytTitles[id]===undefined){ytTitles[id]=await ytTitle(id);draw(ytTitles[id])}
+  const ti=$('#aTitle');if(ti&&ytTitles[id]&&(!ti.value.trim()||ti.dataset.auto==='1')){ti.value=ytTitles[id];ti.dataset.auto='1'}}
+function readTextFile(file,cb){const r=new FileReader();r.onload=()=>cb(String(r.result||''));r.onerror=()=>toast('Faylni o‘qib bo‘lmadi.');r.readAsText(file)}
 async function createLesson(){const err=$('#aErr');err.textContent='';const s=addState.src,m=addState.method;
   const text=($('#aText')?.value||'').trim();let source,title=$('#aTitle').value.trim();
   if(s==='file'){if(!addState.file)return err.textContent='Avval audio yoki video faylni tanlang.';
     source={type:'file',blob:addState.file,name:addState.file.name};title=title||addState.file.name.replace(/\.[^.]+$/,'')}
-  else if(s==='youtube'){const id=ytId($('#aYt').value);if(!id)return err.textContent='YouTube havolasi noto‘g‘ri. Masalan: https://youtu.be/xxxxxxxxxxx';source={type:'youtube',videoId:id};title=title||'YouTube dars'}
+  else if(s==='youtube'){const id=ytId($('#aYt').value);if(!id)return err.textContent='YouTube havolasi noto‘g‘ri. Masalan: https://youtu.be/xxxxxxxxxxx';source={type:'youtube',videoId:id};title=title||ytTitles[id]||'YouTube dars'}
   else if(s==='url'){const u=$('#aUrl').value.trim();if(!/^https?:\/\//.test(u))return err.textContent='To‘liq havola kiriting (https:// bilan boshlansin).';source={type:'url',url:u};title=title||decodeURIComponent(u.split('/').pop().split('?')[0]).replace(/\.[^.]+$/,'')||'Audio dars'}
   else source={type:'tts'};
-  let segments=[];
-  if(m==='timed'){if(!text)return err.textContent='Subtitr matnini joylang.';segments=mergeSentences(parseTimed(text));
-    if(!segments.length)return err.textContent='Vaqtlar topilmadi. Matnni “Oddiy matn” sifatida joylab ko‘ring.'}
-  else if(m==='plain'){if(!text)return err.textContent='Inglizcha matnni joylang.';segments=splitSentences(text).map(t=>({start:null,end:null,text:t}))}
+  let segments=[],timed=false;
+  if(m==='timed'||m==='plain'){if(!text)return err.textContent=m==='timed'?'Subtitr matnini joylang yoki faylni yuklang.':'Inglizcha matnni joylang.';
+    if(m==='timed'){({segs:segments,timed}=importToSegments(text))}else segments=splitSentences(text).map(t=>({start:null,end:null,text:t}));
+    if(!segments.length)return err.textContent='Matndan gap ajratib bo‘lmadi. Matnni tekshiring.'}
   if(s==='tts'&&!title)title=(segments[0]?.text||'Matnli dars').split(' ').slice(0,6).join(' ');
   const L={id:uid(),title,level:$('#aLevel').value,source,segments,progress:{done:[],hints:0,checks:0,shadow:{}},lastIndex:0,created:Date.now()};
   await DB.put('lessons',L);
-  const needSync=m==='plain'&&s!=='tts';
-  go('lesson',{id:L.id,mode:(m==='auto'||needSync)?'edit':'dict',autoWhisper:m==='auto'});
+  const needSync=(m==='plain'||(m==='timed'&&!timed))&&s!=='tts';
+  go('lesson',{id:L.id,mode:(m==='auto'||m==='ytauto'||needSync)?'edit':'dict',autoWhisper:m==='auto',autoYT:m==='ytauto'});
   if(needSync)toast('Endi “Vaqtni belgilash” tugmasini bosing va har gap tugaganda Space bosing.',5000)}
 
 /* ============ lesson shell ============ */
@@ -556,7 +650,8 @@ async function openLesson(){const id=state.id;
       <div id="playerHost" class="player-host"></div><div id="modePanel"></div></div>`;
     cur.player=new Player(L,$('#playerHost'));cur.player.setRate(settings.speed)}
   setMode(state.mode||'dict');
-  if(state.autoWhisper){state.autoWhisper=false;runWhisper()}}
+  if(state.autoWhisper){state.autoWhisper=false;runWhisper()}
+  if(state.autoYT){state.autoYT=false;runYTFetch()}}
 function setMode(m){if(cur.mode==='shadow'&&m!=='shadow')stopRecording(true);if(cur.sync)syncStop();
   cur.mode=m;state.mode=m;cur.player&&cur.player.stop();
   $$('.modes button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));renderPanel()}
@@ -667,19 +762,26 @@ function textPanel(){const L=cur.lesson;const full=L.segments.map(s=>s.text).joi
   <p class="keys" style="margin-top:.8rem">So‘z ustiga bosing — inglizcha izohi, talaffuzi va o‘zbekcha ma’nosini lug‘atga saqlaysiz.</p>`}
 
 /* ============ editor ============ */
-function editPanel(){const L=cur.lesson,canW=L.source.type==='file'||L.source.type==='url',timed=L.source.type!=='tts';
+function editPanel(){const L=cur.lesson,canW=L.source.type==='file'||L.source.type==='url',timed=L.source.type!=='tts',isYT=L.source.type==='youtube',ytUrl=isYT?'https://www.youtube.com/watch?v='+L.source.videoId:'';
   return `<div class="toolbar">
     ${canW?`<button class="btn primary" data-act="whisper">${I.wave} Avtomatik transkripsiya</button>
       <label class="sel">Model <select id="modelSel">${[['Xenova/whisper-tiny.en','Tez (tiny, ~40 MB)'],['Xenova/whisper-base.en','O‘rtacha (base, ~80 MB)'],['Xenova/whisper-small.en','Aniq (small, ~250 MB)']].map(([v,t])=>`<option value="${v}" ${v===settings.model?'selected':''}>${t}</option>`).join('')}</select></label>`:''}
+    ${isYT?`<button class="btn primary" data-act="ytfetch">${I.wave} YouTube’dan transkript olish</button>`:''}
     ${timed&&L.segments.length?`<button class="btn" data-act="sync-start">Vaqtni belgilash</button>`:''}
-    <button class="btn ghost" data-act="paste-text">Matnni almashtirish</button>
+    <button class="btn ${L.segments.length?'ghost':''}" data-act="paste-text">Transkript import qilish</button>
     <span id="savedNote" class="saved-note" style="margin-left:auto"></span></div>
   <div class="field"><label for="eTitle">Dars nomi</label><input id="eTitle" value="${esc(L.title)}"></div>
   <div id="wStatus" class="status" hidden></div>
-  <div id="pasteBox" class="status" hidden><label for="pasteText" class="lbl">Yangi matn (oddiy matn yoki SRT/VTT/YouTube transcript)</label><textarea id="pasteText" rows="7" style="margin:.5rem 0"></textarea>
+  <div id="pasteBox" class="status importbox" hidden>
+    <div class="row" style="justify-content:space-between"><b>Transkriptni import qilish</b><label class="btn" for="pasteFile">Fayldan yuklash (.srt, .vtt, .txt)</label><input type="file" id="pasteFile" accept=".srt,.vtt,.txt,.json,.xml,.sbv,text/*" hidden></div>
+    ${isYT?`<ol class="howto">
+      <li><a href="${ytUrl}" target="_blank" rel="noopener">Videoni YouTube’da oching</a>, tavsif ostidagi <b>…ko‘proq</b> → <b>Show transcript</b> (Транскрипция) ni bosing, matnni belgilab nusxalang va pastga joylang.</li>
+      <li>Yoki <a href="https://downsub.com/?url=${encodeURIComponent(ytUrl)}" target="_blank" rel="noopener">DownSub</a> orqali inglizcha <b>.srt</b> faylni yuklab oling va “Fayldan yuklash”ni bosing.</li>
+      <li>Vaqtsiz oddiy matn ham bo‘ladi — keyin “Vaqtni belgilash” bilan belgilaysiz.</li></ol>`:''}
+    <label for="pasteText" class="lbl">Matn: SRT, VTT, YouTube transcript yoki oddiy matn</label><textarea id="pasteText" rows="7" style="margin:.5rem 0"></textarea>
     <div class="row"><button class="btn primary" data-act="paste-apply">Gaplarga bo‘lish</button><button class="btn ghost" data-act="paste-cancel">Bekor qilish</button></div></div>
   <div id="syncBar" class="syncbar" hidden></div>
-  ${L.segments.length?`<p class="hint" style="margin:0 0 .7rem">Vaqt formati — daqiqa:soniya (1:23.4). Gapni o‘zgartirsangiz avtomatik saqlanadi.</p>`:`<div class="empty" style="margin-bottom:1rem"><p>${canW?'“Avtomatik transkripsiya” tugmasini bosing yoki matnni o‘zingiz joylang.':'“Matnni almashtirish” orqali matnni joylang.'}</p></div>`}
+  ${L.segments.length?`<p class="hint" style="margin:0 0 .7rem">Vaqt formati — daqiqa:soniya (1:23.4). Gapni o‘zgartirsangiz avtomatik saqlanadi.</p>`:`<div class="empty" style="margin-bottom:1rem"><p>${canW?'“Avtomatik transkripsiya” tugmasini bosing yoki transkriptni o‘zingiz import qiling.':isYT?'“YouTube’dan transkript olish” tugmasini bosing yoki transkriptni o‘zingiz import qiling.':'“Transkript import qilish” orqali matnni joylang.'}</p></div>`}
   <ol class="seglist" id="segList">${L.segments.map(segRow).join('')}</ol>
   <div class="row" style="margin-top:.8rem"><button class="btn" data-act="seg-add">+ Gap qo‘shish</button>
   ${L.segments.length?`<button class="btn primary" data-act="mode" data-mode="dict" style="margin-left:auto">Diktantni boshlash →</button>`:''}</div>`}
@@ -708,6 +810,28 @@ function syncMark(){const segs=cur.lesson.segments,s=cur.sync;if(!s)return;const
 function syncBack(){const segs=cur.lesson.segments,s=cur.sync;if(!s)return;if(s.i>0){segs[s.i].start=null;s.i--}segs[s.i].end=null;
   cur.player.playFrom(Math.max(0,(segs[s.i].start||0)-0.05));redrawSegs();drawSync()}
 function syncStop(){cur.sync=null;cur.player&&cur.player.stop();drawSync();redrawSegs()}
+
+/* ============ YouTube fetch in editor ============ */
+let ytBusy=false;
+function openImport(){const b=$('#pasteBox');if(!b)return;b.hidden=false;b.scrollIntoView({block:'nearest',behavior:'smooth'});$('#pasteText').focus({preventScroll:true})}
+async function runYTFetch(){const L=cur.lesson;if(!L||L.source.type!=='youtube')return;if(ytBusy)return toast('Qidiruv ketyapti…');
+  const fb=$('[data-act="ytfetch"]');if(fb&&L.segments.length&&L.progress.done.length&&!armOnce(fb,'Bajarilgan gaplar almashtiriladi — yana bosing'))return;
+  ytBusy=true;const show=html=>{const s=$('#wStatus');if(s){s.hidden=false;s.innerHTML=html}};const t0=Date.now();
+  const tick=()=>show(`<b>YouTube subtitri qidirilmoqda…</b><div class="hint">Bir nechta manba bir vaqtda tekshirilmoqda. Odatda 5–20 soniya (${Math.round((Date.now()-t0)/1000)} s).</div><div class="bar indet"><i></i></div>`);
+  tick();const timer=setInterval(tick,1000);
+  try{const r=await findYTTranscript(L.source.videoId);const {segs,timed}=importToSegments(r.text);
+    if(!timed||!segs.length)throw new Error('bad');
+    clearInterval(timer);L.segments=segs;L.source.captionAuto=!!r.auto;
+    if(r.title&&(!L.title||L.title==='YouTube dars')){L.title=r.title;const h=$('.lhead h1');if(h)h.textContent=r.title}
+    structChanged();await saveLesson();
+    if(cur.lesson===L&&cur.mode==='edit'){renderPanel();
+      show(`<b style="color:var(--ok)">Transkript topildi: ${segs.length} ta gap.</b><div class="hint">${r.auto?'Bu YouTube’ning avtomatik subtitri — tinish belgilari va ba’zi so‘zlarda xato bo‘lishi mumkin. Diktantdan oldin tez ko‘zdan kechirib chiqing.':'Muallif qo‘ygan subtitr. Diktantni boshlashingiz mumkin.'}</div>`)}
+    toast(`Topildi! ${segs.length} ta gap.`)}
+  catch(e){clearInterval(timer);if(cur.lesson!==L||cur.mode!=='edit')return;
+    const why={noen:'Bu videoda inglizcha subtitr yo‘q.',nocap:'Bu videoda subtitr umuman yo‘q.'}[e.message]||'Subtitr manbalariga ulanib bo‘lmadi yoki ular hozir band.';
+    show(`<b style="color:var(--bad)">Transkript avtomatik topilmadi</b><div class="hint">${why} Pastdagi oyna orqali o‘zingiz import qiling${e.message==='net'?' yoki birozdan keyin “YouTube’dan transkript olish”ni qayta bosing':''}.</div>`);
+    openImport()}
+  finally{clearInterval(timer);ytBusy=false}}
 
 /* ============ whisper ============ */
 let worker=null,wBusy=false;
@@ -871,11 +995,13 @@ document.addEventListener('click',async e=>{const g=e.target.closest('[data-go]'
     case 'seg-del':{const i=+b.closest('.segrow').dataset.i;cur.lesson.segments.splice(i,1);structChanged();redrawSegs();break}
     case 'seg-merge':{const i=+b.closest('.segrow').dataset.i,S=cur.lesson.segments;S[i-1].text+=' '+S[i].text;S[i-1].end=S[i].end;S.splice(i,1);structChanged();redrawSegs();break}
     case 'seg-add':{const S=cur.lesson.segments,last=S[S.length-1];S.push({start:last?.end??null,end:null,text:''});structChanged();redrawSegs();$$('#segList textarea').pop()?.focus();break}
-    case 'paste-text':$('#pasteBox').hidden=false;$('#pasteText').focus();break;
+    case 'ytfetch':runYTFetch();break;
+    case 'paste-text':openImport();break;
     case 'paste-cancel':$('#pasteBox').hidden=true;break;
-    case 'paste-apply':{const t=$('#pasteText').value.trim();if(!t)break;const timed=/-->/.test(t)||/^\s*(\d{1,2}:)?\d{1,2}:\d{2}\s*$/m.test(t);
-      cur.lesson.segments=timed?mergeSentences(parseTimed(t)):splitSentences(t).map(x=>({start:null,end:null,text:x}));structChanged();renderPanel();
-      toast(timed?'Vaqtlar bilan bo‘lindi.':(cur.lesson.source.type==='tts'?'Matn gaplarga bo‘lindi.':'Endi “Vaqtni belgilash”ni bosing.'),3500);break}
+    case 'paste-apply':{const t=$('#pasteText').value.trim();if(!t){toast('Avval matnni joylang yoki faylni tanlang.');break}const {segs,timed}=importToSegments(t);
+      if(!segs.length){toast('Matndan gap ajratib bo‘lmadi.');break}
+      cur.lesson.segments=segs;structChanged();renderPanel();
+      toast(timed?`${segs.length} ta gap vaqtlari bilan import qilindi.`:(cur.lesson.source.type==='tts'?'Matn gaplarga bo‘lindi.':'Matn bo‘lindi. Endi “Vaqtni belgilash”ni bosing.'),4000);break}
     case 'export':exportData();break;
     case 'wipe':if(armOnce(b,'Rostdan hammasi o‘chirilsinmi?')){await DB.clear('lessons');await DB.clear('vocab');saveLS('dd_stats',{days:{}});saveLS('dd_seeded',true);await refreshVocab();toast('Hammasi o‘chirildi.');go('home')}break;
   }});
@@ -886,9 +1012,15 @@ document.addEventListener('change',e=>{const t=e.target;
   else if(t.id==='repeatSel'){settings.repeat=+t.value;saveSettings()}
   else if(t.id==='modelSel'){settings.model=t.value;saveSettings()}
   else if(t.dataset.set){const k=t.dataset.set;settings[k]=['speed','repeat','maxWords'].includes(k)?+t.value:t.value;saveSettings()}
-  else if(t.id==='importFile'&&t.files[0])importData(t.files[0])});
+  else if(t.id==='importFile'&&t.files[0])importData(t.files[0]);
+  else if(t.id==='pasteFile'&&t.files[0]){const f=t.files[0];readTextFile(f,txt=>{$('#pasteText').value=txt;t.value='';toast(f.name+' yuklandi. “Gaplarga bo‘lish”ni bosing.')})}});
 document.addEventListener('submit',async e=>{if(e.target.id==='addWord'){e.preventDefault();const w=$('#nwWord').value.trim();if(!w)return;
   await saveWord({word:w,meaning:$('#nwMean').value.trim()});app.innerHTML=vocabView();toast('Qo‘shildi.');$('#nwWord').focus()}});
+/* drop a subtitle file straight onto the transcript box */
+document.addEventListener('dragover',e=>{const t=e.target.closest?.('#pasteText,#aText');if(t){e.preventDefault();t.classList.add('drag')}});
+document.addEventListener('dragleave',e=>{const t=e.target.closest?.('#pasteText,#aText');t&&t.classList.remove('drag')});
+document.addEventListener('drop',e=>{const t=e.target.closest?.('#pasteText,#aText');if(!t)return;t.classList.remove('drag');const f=e.dataTransfer.files[0];if(!f)return;e.preventDefault();
+  readTextFile(f,txt=>{t.value=txt;if(t.id==='aText'){const r=importToSegments(txt);if(r.timed&&addState.method!=='timed'){addState.method='timed';renderAddParts()}}toast(f.name+' yuklandi.')})});
 let ctrlAlone=false;
 document.addEventListener('keydown',e=>{
   if(e.key==='Control'){ctrlAlone=!e.repeat;return}ctrlAlone=false;
